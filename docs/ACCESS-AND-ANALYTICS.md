@@ -12,6 +12,8 @@ The hosted demo opens on a four-digit passcode page. It is a convenience gate fo
 | `TRUST_PROXY` | panel variable | Set to `1` only when exactly one reverse proxy (the panel's) sits in front. Unset trusts no forwarded headers. |
 | `ACCESS_GATE=on` | local only | Turns the gate on outside production for trying it locally. In production the gate is always on; `ACCESS_GATE=off` or `ACCESS_COOKIE_SECURE=false` stops the start. |
 
+Coolify aliases (same meaning): `SOC_ACCESS_PIN`, `SOC_ACCESS_SESSION_SECRET` (also `SOC_SESSION_SECRET`), `SOC_SESSION_MINUTES`, `SOC_TRUST_PROXY` (`true` means one proxy), `SOC_ACCESS_GATE=true`, `SOC_ALLOW_DEMO_RESET`. `SOC_ALLOW_DEMO_RESET=false` keeps `POST /api/lab/reset` disabled in production. The Clarity ID can come from `SOC_CLARITY_PROJECT_ID` or `VITE_CLARITY_PROJECT_ID` (read server-side via `/api/session`, never via Vite injection).
+
 How it works:
 
 - The server checks the PIN (constant-time compare) and sets a cookie signed with HMAC-SHA256: `HttpOnly`, `SameSite=Lax`, `Secure` in production, expiring after the session length.

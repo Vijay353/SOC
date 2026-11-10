@@ -76,11 +76,11 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env, overrides: Part
     seedOnEmpty: !production,
     persistClock: production,
     access: {
-      // Coolify aliases: SOC_ACCESS_GATE / SOC_ACCESS_PIN / SOC_SESSION_SECRET (PULSE_ still accepted).
+      // Coolify aliases: SOC_ACCESS_GATE / SOC_ACCESS_PIN / SOC_SESSION_SECRET / SOC_ACCESS_SESSION_SECRET (PULSE_ still accepted).
       // "true"/"1"/"on" all count as on; in production the gate is always on anyway.
       enabled: production || isOn(pick(env, 'ACCESS_GATE', 'SOC_ACCESS_GATE', 'PULSE_ACCESS_GATE')),
       pin: pick(env, 'ACCESS_PIN', 'SOC_ACCESS_PIN', 'PULSE_ACCESS_PIN') || undefined,
-      secret: pick(env, 'ACCESS_SESSION_SECRET', 'SOC_SESSION_SECRET', 'PULSE_SESSION_SECRET') || undefined,
+      secret: pick(env, 'ACCESS_SESSION_SECRET', 'SOC_ACCESS_SESSION_SECRET', 'SOC_SESSION_SECRET', 'PULSE_SESSION_SECRET') || undefined,
       sessionMinutes: Number(pick(env, 'ACCESS_SESSION_MINUTES', 'SOC_SESSION_MINUTES', 'PULSE_SESSION_MINUTES') ?? 120),
       secureCookie: env.ACCESS_COOKIE_SECURE ? env.ACCESS_COOKIE_SECURE === 'true' : production,
     },

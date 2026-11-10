@@ -284,7 +284,7 @@ export function createSystem(overrides: Partial<AppConfig> = {}, env: NodeJS.Pro
   );
 
   // ---- Lab controls (demo-only simulator management; not part of the Gate trust boundary) ----
-  // In production the reset is off unless ALLOW_DEMO_RESET (or PULSE_ALLOW_DEMO_RESET) is on.
+  // In production the reset is off unless ALLOW_DEMO_RESET (or SOC_ALLOW_DEMO_RESET) is on.
   api.post('/lab/reset', (_req, res) => {
     if (config.production && !config.allowDemoReset) {
       return res.status(403).json({ error: { code: 'DEMO_RESET_DISABLED', message: 'Demo reset is disabled in production.' } });

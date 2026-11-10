@@ -6,6 +6,15 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { accessProblems } from '../access/access-gate';
 
+/** First set value wins; empty counts as unset. Lets Coolify use SOC_ / PULSE_ aliases. */
+const pick = (env: NodeJS.ProcessEnv, ...names: string[]): string | undefined => {
+  for (const n of names) {
+    const v = env[n];
+    if (v !== undefined && v !== '') return v;
+  }
+  return undefined;
+};
+
 export function productionProblems(env: NodeJS.ProcessEnv): string[] {
   const problems: string[] = [];
   const dir = env.DATA_DIR;
@@ -24,9 +33,16 @@ export function productionProblems(env: NodeJS.ProcessEnv): string[] {
       problems.push(`DATA_DIR ${dir} is missing or not writable (${(e as NodeJS.ErrnoException).code ?? 'error'}). Mount a writable volume there.`);
     }
   }
-  if (env.ACCESS_GATE === 'off') problems.push('ACCESS_GATE=off is not allowed in production. The passcode gate is always on there.');
+  // Canonical names plus SOC_ / PULSE_ Coolify aliases; validation sees the same values as loadConfig.
+  if (pick(env, 'ACCESS_GATE', 'SOC_ACCESS_GATE', 'PULSE_ACCESS_GATE') === 'off') problems.push('ACCESS_GATE=off is not allowed in production. The passcode gate is always on there.');
   problems.push(
-    ...accessProblems({ enabled: true, pin: env.ACCESS_PIN, secret: env.ACCESS_SESSION_SECRET, sessionMinutes: Number(env.ACCESS_SESSION_MINUTES ?? 120), secureCookie: true }),
+    ...accessProblems({
+      enabled: true,
+      pin: pick(env, 'ACCESS_PIN', 'SOC_ACCESS_PIN', 'PULSE_ACCESS_PIN'),
+      secret: pick(env, 'ACCESS_SESSION_SECRET', 'SOC_ACCESS_SESSION_SECRET', 'SOC_SESSION_SECRET', 'PULSE_SESSION_SECRET'),
+      sessionMinutes: Number(pick(env, 'ACCESS_SESSION_MINUTES', 'SOC_SESSION_MINUTES', 'PULSE_SESSION_MINUTES') ?? 120),
+      secureCookie: true,
+    }),
   );
   if (env.ACCESS_COOKIE_SECURE === 'false') problems.push('ACCESS_COOKIE_SECURE=false is not allowed in production. Serve the demo over HTTPS.');
   if (env.HOST && env.HOST !== '0.0.0.0' && env.HOST !== '127.0.0.1' && env.HOST !== '::') problems.push(`HOST "${env.HOST}" is unusual for a container; use 0.0.0.0.`);
