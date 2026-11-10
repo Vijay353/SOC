@@ -1,0 +1,8 @@
+ciId,name,hostname,machineId,tier,businessService,environment,ownerUserId,lastVerifiedAt,revision
+CI-007120,MES application server,PRD-MES-APP01,device-3be1c771,TIER_1,Plant manufacturing execution,PRODUCTION,owner-mes,2026-10-17T21:02:00Z,8
+CI-009481,SAP EWM RFC gateway,PRD-SAP-GW02,device-d8f92a10,TIER_0,SAP warehouse operations,PRODUCTION,owner-sap-ewm,2026-10-18T05:57:00Z,3
+CI-011902,Print server (legacy record),PRD-PRINT-01,device-5c0e44d2,TIER_2,Office print,PRODUCTION,owner-print,2026-10-18T05:30:00Z,5
+CI-011977,Label print gateway,PRD-PRINT-01,device-5c0e44d2,TIER_1,Warehouse label printing,PRODUCTION,owner-print,2026-10-18T05:31:00Z,1
+CI-020455,Finance analyst workstation,WKS-FIN-0412,device-91aa02fe,TIER_3,End-user computing,PRODUCTION,owner-fin-it,2026-10-18T05:40:00Z,2
+CI-030118,Payments API node 03,PRD-PAY-API03,device-a7d3e915,TIER_1,Card payment authorization,PRODUCTION,owner-payments,2026-10-18T06:01:00Z,4
+CI-044610,Plant historian 07,PRD-HIST-07,device-62f0b8c3,TIER_1,OT process history,PRODUCTION,owner-ot-historian,2026-10-18T05:50:00Z,2

@@ -1,0 +1,3 @@
+freezeId,ciId,reason,startsAt,endsAt,status
+FRZ-2188,CI-030118,Payments peak-season freeze (ended),2026-10-01T00:00:00Z,2026-10-05T00:00:00Z,SCHEDULED
+FRZ-2210,CI-009481,Quarter-end warehouse reconciliation freeze,2026-10-17T22:00:00Z,2026-10-19T06:00:00Z,SCHEDULED

@@ -1,0 +1,14 @@
+node_modules/
+app/dist/
+data/runtime/
+data/e2e-runtime/
+test-results/
+playwright-report/
+coverage/
+.env
+*.db
+*.db-wal
+*.db-shm
+dist-server/
+backups/
+data/e2e-access-runtime/

@@ -1,0 +1,7 @@
+incidentId,displayName,severity,status,createdDateTime,lastUpdateDateTime,revision
+INC-90482,Credential dumping and command-and-control on SAP gateway,high,active,2026-10-18T05:41:00Z,2026-10-18T06:10:00Z,12
+INC-90483,Suspicious PowerShell on manufacturing execution server,high,active,2026-10-18T05:20:00Z,2026-10-18T06:10:00Z,4
+INC-90484,Ransomware precursor on finance workstation,medium,active,2026-10-18T05:55:00Z,2026-10-18T06:10:00Z,3
+INC-90485,Lateral movement originating from print server,high,active,2026-10-18T04:48:00Z,2026-10-18T06:10:00Z,7
+INC-90486,Beaconing from payments API node,high,active,2026-10-18T05:02:00Z,2026-10-18T06:10:00Z,5
+INC-90487,Malicious scheduled task on plant historian,medium,active,2026-10-18T05:33:00Z,2026-10-18T06:10:00Z,2

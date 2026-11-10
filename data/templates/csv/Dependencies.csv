@@ -1,0 +1,27 @@
+dependencyId,ciId,workflowName,criticality,status
+DEP-1902-01,CI-011902,Office print queues,NONCRITICAL,ACTIVE
+DEP-1977-01,CI-011977,Shipping label printing,CRITICAL,ACTIVE
+DEP-3011-01,CI-030118,Card authorization routing,CRITICAL,ACTIVE
+DEP-3011-02,CI-030118,Refund processing,CRITICAL,ACTIVE
+DEP-4461-01,CI-044610,Process data archiving,CRITICAL,ACTIVE
+DEP-7120-01,CI-007120,Line 3 work-order dispatch,CRITICAL,ACTIVE
+DEP-7120-02,CI-007120,Batch genealogy capture,CRITICAL,ACTIVE
+DEP-9481-01,CI-009481,Outbound delivery confirmation,CRITICAL,ACTIVE
+DEP-9481-02,CI-009481,Inbound goods receipt posting,CRITICAL,ACTIVE
+DEP-9481-03,CI-009481,Warehouse task creation,CRITICAL,ACTIVE
+DEP-9481-04,CI-009481,Handling unit labeling,CRITICAL,ACTIVE
+DEP-9481-05,CI-009481,Wave release,CRITICAL,ACTIVE
+DEP-9481-06,CI-009481,Pick confirmation,CRITICAL,ACTIVE
+DEP-9481-07,CI-009481,Pack station dispatch,CRITICAL,ACTIVE
+DEP-9481-08,CI-009481,Carrier manifest export,CRITICAL,ACTIVE
+DEP-9481-09,CI-009481,Cycle count posting,CRITICAL,ACTIVE
+DEP-9481-10,CI-009481,Stock transfer between bins,CRITICAL,ACTIVE
+DEP-9481-11,CI-009481,Returns processing,CRITICAL,ACTIVE
+DEP-9481-12,CI-009481,Yard management check-in,CRITICAL,ACTIVE
+DEP-9481-13,CI-009481,RF scanner session broker,CRITICAL,ACTIVE
+DEP-9481-14,CI-009481,Cross-dock allocation,CRITICAL,ACTIVE
+DEP-9481-15,CI-009481,Replenishment trigger,CRITICAL,ACTIVE
+DEP-9481-16,CI-009481,Quality inspection hold,CRITICAL,ACTIVE
+DEP-9481-17,CI-009481,Proof-of-delivery sync,CRITICAL,ACTIVE
+DEP-9481-18,CI-009481,Warehouse reconciliation batch,CRITICAL,ACTIVE
+DEP-9481-90,CI-009481,Legacy EDI bridge (decommissioned),CRITICAL,RETIRED

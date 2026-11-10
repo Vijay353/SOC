@@ -1,0 +1,10 @@
+userId,displayName,role,onCall,active
+analyst-li,Li Wei — SOC analyst,ANALYST,false,true
+analyst-priya,Priya Natarajan — SOC analyst,ANALYST,true,true
+owner-fin-it,Grace Ito — Finance end-user IT,SERVICE_OWNER,true,true
+owner-mes,Tomas Lindqvist — MES platform owner,SERVICE_OWNER,true,true
+owner-ot-historian,Ravi Menon — OT historian owner,SERVICE_OWNER,true,true
+owner-payments,Ana Duarte — Payments platform owner,SERVICE_OWNER,true,true
+owner-print,Sam Osei — Print services,SERVICE_OWNER,true,true
+owner-sap-ewm,Maya Okafor — SAP EWM service owner,SERVICE_OWNER,true,true
+soc-incident-commander,Jordan Reyes — SOC incident commander,INCIDENT_COMMANDER,true,true

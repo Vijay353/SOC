@@ -1,0 +1,18 @@
+# Keep secrets, databases, local builds and tooling output out of the build context.
+.git
+node_modules
+app/dist
+dist-server
+data/runtime
+data/e2e-runtime
+backups
+test-results
+playwright-report
+coverage
+*.db
+*.db-wal
+*.db-shm
+.env
+.env.*
+!.env.example
+penpot
