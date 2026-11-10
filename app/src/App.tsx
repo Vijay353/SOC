@@ -123,7 +123,7 @@ export function App() {
         )}
         {tab === 'review' && <ReviewPage key={`r-${refreshKey}`} session={session} onChanged={bump} onSwitchUser={changeUser} />}
         {tab === 'approvals' && <ApprovalsPage key={`a-${refreshKey}`} session={session} onChanged={bump} />}
-        {tab === 'data' && <DataStudioPage key={`d-${refreshKey}`} onChanged={bump} />}
+        {tab === 'data' && <DataStudioPage key={`d-${refreshKey}`} onChanged={bump} demoResetAllowed={session?.demoReset?.allowed ?? true} />}
         {tab === 'lab' && <LabPage key={`l-${refreshKey}`} session={session} onChanged={bump} />}
       </main>
       <footer className="foot">

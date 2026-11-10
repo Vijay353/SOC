@@ -44,7 +44,8 @@ interface HistoryItem {
 }
 
 /** Secondary surface: edit simulator data through Excel/CSV. Interchange only, not an integration. */
-export function DataStudioPage({ onChanged }: { onChanged: () => void }) {
+/** Secondary surface: edit simulator data through Excel/CSV. Interchange only, not an integration. */
+export function DataStudioPage({ onChanged, demoResetAllowed = true }: { onChanged: () => void; demoResetAllowed?: boolean }) {
   const [file, setFile] = useState<File | null>(null);
   const [mode, setMode] = useState<'merge' | 'replace'>('merge');
   const [entity, setEntity] = useState<string>('ConfigItems');
@@ -156,18 +157,26 @@ export function DataStudioPage({ onChanged }: { onChanged: () => void }) {
           <a className="btn" href="/api/data/export.xlsx" download>
             Export current state (.xlsx)
           </a>
-          <button
-            className="btn"
-            onClick={async () => {
-              await api('POST', '/lab/reset');
-              setPreview(null);
-              setCommitted({ status: 'RESET', summary: { note: 'Simulators and Gate restored to the sample dataset' } });
-              await Promise.all([loadHistory(), loadRecords()]);
-              onChanged();
-            }}
-          >
-            Reset to sample dataset
-          </button>
+          {demoResetAllowed === false ? (
+            <span className="small muted">Reset to sample dataset is disabled in production.</span>
+          ) : (
+            <button
+              className="btn"
+              onClick={async () => {
+                try {
+                  await api('POST', '/lab/reset');
+                  setPreview(null);
+                  setCommitted({ status: 'RESET', summary: { note: 'Simulators and Gate restored to the sample dataset' } });
+                  await Promise.all([loadHistory(), loadRecords()]);
+                  onChanged();
+                } catch (e) {
+                  setError({ code: (e as ApiError).code, message: (e as Error).message });
+                }
+              }}
+            >
+              Reset to sample dataset
+            </button>
+          )}
         </div>
       </section>
 

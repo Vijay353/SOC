@@ -65,9 +65,13 @@ export function LabPage({ session, onChanged }: Props) {
             Reset restores all three stores (Mock Security, Mock ITSM, Gate) to the synthetic seed and rewinds the scenario clock to {session ? fmtDateTime(session.clock.scenarioStart) : '…'}.
           </p>
           <div className="row">
-            <button className="btn" onClick={() => run(() => api('POST', '/lab/reset'))} data-testid="reset-scenario">
-              Reset scenario
-            </button>
+            {session?.demoReset?.allowed === false ? (
+              <p className="small muted">Reset scenario is disabled in production.</p>
+            ) : (
+              <button className="btn" onClick={() => run(() => api('POST', '/lab/reset'))} data-testid="reset-scenario">
+                Reset scenario
+              </button>
+            )}
             <button className="btn" onClick={() => run(() => api('POST', '/lab/clock', { advanceMinutes: 6 }))}>
               Advance clock +6 min
             </button>

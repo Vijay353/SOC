@@ -28,6 +28,8 @@ export interface Session {
   setupError: { message: string; missing: string[] } | null;
   /** CH-20: whether the visitor passcode gate is on for this server. */
   access?: { enabled: boolean };
+  /** Whether POST /api/lab/reset is allowed on this server (off in production unless explicitly enabled). */
+  demoReset?: { allowed: boolean };
   /** CH-21: present only when analytics is configured for this server. */
   analytics?: { provider: 'clarity'; projectId: string } | null;
   clock: { now: string; mode: string; scenarioStart: string; manualOffsetMinutes: number };

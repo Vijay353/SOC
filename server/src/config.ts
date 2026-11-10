@@ -4,6 +4,17 @@ import type { AccessConfig } from './access/access-gate';
 
 export type IntegrationMode = 'SIMULATED' | 'SANDBOX' | 'LIVE';
 
+const pick = (env: NodeJS.ProcessEnv, ...names: string[]): string | undefined => {
+  for (const n of names) {
+    const v = env[n];
+    if (v !== undefined && v !== '') return v;
+  }
+  return undefined;
+};
+
+/** Accepts on/true/1/yes (any case) as enabled. Used for Coolify aliases that send "true" instead of "on". */
+const isOn = (v: string | undefined): boolean => !!v && ['1', 'true', 'on', 'yes'].includes(v.toLowerCase());
+
 export interface AppConfig {
   port: number;
   host: string;
@@ -18,6 +29,7 @@ export interface AppConfig {
   tokens: { gateSecurity: string; gateItsm: string; simAdmin: string };
   /** CH-22: NODE_ENV=production. Turns on the production start-up checks; never changes local development. */
   production: boolean;
+
   /** Seed empty simulator stores on start. Off in production: seeding there is the explicit bootstrap step. */
   seedOnEmpty: boolean;
   /** Keep the scenario clock across restarts (stored in gate.db). On in production only. */
@@ -28,14 +40,17 @@ export interface AppConfig {
   trustProxy: number | string | undefined;
   /** CH-21: optional Microsoft Clarity project ID (a public identifier, not a secret). Null means analytics off. */
   clarityProjectId: string | null;
+  /** Demo reset switch. Off in production unless ALLOW_DEMO_RESET (or PULSE_ALLOW_DEMO_RESET) is on. */
+  allowDemoReset: boolean;
   sandbox: { tenantId?: string; clientId?: string; clientSecret?: string; serviceNowInstance?: string; serviceNowUser?: string; serviceNowPassword?: string };
 }
 
 const randomToken = () => crypto.randomBytes(24).toString('hex');
 
 export function loadConfig(env: NodeJS.ProcessEnv = process.env, overrides: Partial<AppConfig> = {}): AppConfig {
-  const mode = (env.INTEGRATION_MODE ?? 'SIMULATED').toUpperCase();
+  const mode = (pick(env, 'INTEGRATION_MODE') ?? 'SIMULATED').toUpperCase();
   const integrationMode: IntegrationMode = mode === 'SANDBOX' || mode === 'LIVE' ? mode : 'SIMULATED';
+  const production = env.NODE_ENV === 'production';
   const base: AppConfig = {
     port: Number(env.PORT ?? 4300),
     host: env.HOST ?? '127.0.0.1',
@@ -57,20 +72,39 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env, overrides: Part
       gateItsm: env.SIM_GATE_ITSM_TOKEN || randomToken(),
       simAdmin: env.SIM_ADMIN_TOKEN || randomToken(),
     },
-    production: env.NODE_ENV === 'production',
-    seedOnEmpty: env.NODE_ENV !== 'production',
-    persistClock: env.NODE_ENV === 'production',
+    production,
+    seedOnEmpty: !production,
+    persistClock: production,
     access: {
-      enabled: env.NODE_ENV === 'production' || env.ACCESS_GATE === 'on',
-      pin: env.ACCESS_PIN || undefined,
-      secret: env.ACCESS_SESSION_SECRET || undefined,
-      sessionMinutes: Number(env.ACCESS_SESSION_MINUTES ?? 120),
-      secureCookie: env.ACCESS_COOKIE_SECURE ? env.ACCESS_COOKIE_SECURE === 'true' : env.NODE_ENV === 'production',
+      // Coolify aliases: PULSE_ACCESS_GATE / PULSE_ACCESS_PIN / PULSE_SESSION_SECRET.
+      // "true"/"1"/"on" all count as on; in production the gate is always on anyway.
+      enabled: production || isOn(pick(env, 'ACCESS_GATE', 'PULSE_ACCESS_GATE')),
+      pin: pick(env, 'ACCESS_PIN', 'PULSE_ACCESS_PIN') || undefined,
+      secret: pick(env, 'ACCESS_SESSION_SECRET', 'PULSE_SESSION_SECRET') || undefined,
+      sessionMinutes: Number(pick(env, 'ACCESS_SESSION_MINUTES', 'PULSE_SESSION_MINUTES') ?? 120),
+      secureCookie: env.ACCESS_COOKIE_SECURE ? env.ACCESS_COOKIE_SECURE === 'true' : production,
     },
-    // Analytics is off locally and in tests unless ANALYTICS_ENABLED=true; in production it needs only the ID.
-    clarityProjectId:
-      env.CLARITY_PROJECT_ID && /^[a-z0-9]{6,20}$/i.test(env.CLARITY_PROJECT_ID) && (env.NODE_ENV === 'production' || env.ANALYTICS_ENABLED === 'true') ? env.CLARITY_PROJECT_ID : null,
-    trustProxy: env.TRUST_PROXY ? (/^\d+$/.test(env.TRUST_PROXY) ? Number(env.TRUST_PROXY) : env.TRUST_PROXY) : undefined,
+    // Analytics is off locally and in tests unless ANALYTICS_ENABLED=true (or VITE_CLARITY_ALLOW_LOCAL=true); in production it needs only the ID.
+    // Coolify aliases: PULSE_CLARITY_PROJECT_ID / VITE_CLARITY_PROJECT_ID (read server-side via /api/session, never via Vite).
+    clarityProjectId: (() => {
+      const id = pick(env, 'CLARITY_PROJECT_ID', 'PULSE_CLARITY_PROJECT_ID', 'VITE_CLARITY_PROJECT_ID', 'VITE_PUBLIC_CLARITY_PROJECT_ID');
+      const localOk = isOn(pick(env, 'ANALYTICS_ENABLED', 'CLARITY_ALLOW_LOCAL', 'VITE_CLARITY_ALLOW_LOCAL', 'PULSE_ANALYTICS_ENABLED'));
+      return id && /^[a-z0-9]{6,20}$/i.test(id) && (production || localOk) ? id : null;
+    })(),
+    // Coolify alias: PULSE_TRUST_PROXY. "true" means exactly one proxy (1); digits stay numeric.
+    trustProxy: (() => {
+      const raw = pick(env, 'TRUST_PROXY', 'PULSE_TRUST_PROXY');
+      if (!raw) return undefined;
+      if (/^\d+$/.test(raw)) return Number(raw);
+      if (raw.toLowerCase() === 'true') return 1;
+      return raw;
+    })(),
+    // Coolify alias: PULSE_ALLOW_DEMO_RESET. Explicit value wins; otherwise on locally, off in production.
+    allowDemoReset: (() => {
+      const raw = pick(env, 'ALLOW_DEMO_RESET', 'PULSE_ALLOW_DEMO_RESET');
+      if (raw === undefined) return !production;
+      return isOn(raw);
+    })(),
     sandbox: {
       tenantId: env.MS_TENANT_ID || undefined,
       clientId: env.MS_CLIENT_ID || undefined,
