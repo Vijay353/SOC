@@ -23,9 +23,11 @@ docker build -t business-impact-gate:$(git rev-parse --short HEAD) .
 docker run -d --name gate -p 127.0.0.1:4300:4300 \
   -v /srv/gate/data:/data -v /srv/gate/backups:/backups \
   --memory 512m business-impact-gate:<sha>
-# first install only:
-docker exec gate node dist-server/scripts/bootstrap.mjs
 ```
+
+The container's command seeds the simulators once on first start (when `$DATA_DIR/gate.db` is missing)
+and just starts otherwise, so no separate `docker exec ... bootstrap` step is needed. The bootstrap only
+fills empty stores and never resets.
 
 The container runs as the `node` user. Create the host directories first and give them to uid 1000: `sudo install -d -o 1000 -g 1000 -m 700 /srv/gate/data /srv/gate/backups`. If `DATA_DIR` is missing, not a directory or not writable, the process stops with `START REFUSED` and a reason. If the databases are empty, it stops and tells you to run the bootstrap.
 
