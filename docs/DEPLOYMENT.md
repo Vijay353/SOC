@@ -31,17 +31,16 @@ fills empty stores and never resets.
 
 ### Coolify: custom start command (recommended) and healthcheck
 
-If you prefer an explicit start command instead of the image default, set Coolify
-Applications / SOC / Configuration / General / Custom Start Command to:
+Set Coolify Applications / SOC / Configuration / General / Custom Start Command to:
 
 ```bash
-sh -c "node dist-server/scripts/bootstrap.mjs && node dist-server/server/src/index.mjs"
+npm start
 ```
 
-Use the node dist-server paths, not npm start: the runtime image installs
-production dependencies only, so npm start (tsx on TypeScript sources not in the
-image) fails there, while the compiled bundles under dist-server are what the
-image contains. The bootstrap is idempotent, so running it on every start is safe.
+`npm start` is `node dist-server/scripts/bootstrap.mjs && node dist-server/server/src/index.mjs`:
+the idempotent bootstrap (only fills empty stores, never resets), then the compiled
+server. It behaves the same as the image default. Do not use `npm run bootstrap`
+or `tsx` paths there: the runtime image has no dev dependencies or TS sources.
 
 Healthcheck: keep the /api/ready check but give the first start room to seed. In
 Coolify's Healthcheck menu, either temporarily disable the healthcheck or set the

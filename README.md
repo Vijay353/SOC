@@ -18,13 +18,13 @@ npm run dev         # API + simulators on http://127.0.0.1:4300, UI on http://12
 
 Open **http://127.0.0.1:5173**. No credentials, keys or network access are needed.
 
-Production-style single process: `npm run build && npm start` → UI and API both on http://127.0.0.1:4300.
+Production-style single process: `npm run build && npm run build:server && npm start` → UI and API both on http://127.0.0.1:4300 (start auto-bootstraps empty stores, then runs the compiled server).
 
 | Command | What it does |
 |---|---|
 | `npm run seed` | Reset all three stores to the synthetic seed |
 | `npm run dev` | API (tsx watch) + Vite dev server with `/api` proxy |
-| `npm start` | API + simulators; serves `app/dist` if built |
+| `npm start` | Bootstrap (idempotent) + compiled API/server; serves `app/dist` if built. Needs `npm run build:server` first |
 | `npm run typecheck` / `npm run lint` | `tsc --noEmit` (strict) / ESLint |
 | `npm test` | Vitest unit + integration (92 tests) |
 | `npm run build` | Vite production build of the React app |

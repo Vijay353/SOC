@@ -154,7 +154,7 @@ Forward and backward: the V3 code reads pre-V3 files. Pre-V3 code ignores the ad
 
 ## 7. Demo walkthrough
 
-Local: `npm install`, `npm run dev` (or `npm run build && npm start`), open the app. All data is synthetic.
+Local: `npm install`, `npm run dev` (or `npm run build && npm run build:server && npm start`), open the app. All data is synthetic.
 
 1. Primary scenario (about 60 seconds). Review tab, select PRD-SAP-GW02 (INC-90482), "Prepare isolation review". Checkpoints: headline "Full isolation could interrupt SAP warehouse operations"; decision "Dual approval required" with the code `REQUIRE_DUAL_APPROVAL` under it; "Evidence checks: 8 passed, 1 warned, 0 blocked, 0 not evaluated" (CH-19, open it to see each rule result and the evidence it read); evidence-age bars (CH-10); source badges (CH-12). Select "Stage dual-approval packet": result "Approval packet CAP-2026-1042 staged and verified", state "Waiting for dual approval", device change "None". Simulated: Defender, CMDB and the approval store.
 2. Approvals (about 45 seconds). Switch "Acting as" to Jordan Reyes (SOC incident commander), Approvals tab: the packet shows the impact projection (CH-7). Approve. Switch to Maya Okafor (SAP EWM service owner) and approve. Back in Review the request is "Approved for manual execution". Bulk approval (CH-9) shows per-item results.

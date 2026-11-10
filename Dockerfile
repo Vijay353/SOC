@@ -24,7 +24,7 @@ USER node
 EXPOSE 4300
 HEALTHCHECK --interval=30s --timeout=3s --start-period=45s CMD node -e "fetch('http://127.0.0.1:'+(process.env.PORT||4300)+'/api/ready').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"
 # First start on an empty volume seeds the simulators once (idempotent bootstrap); afterwards it just starts.
-# NOTE: intentionally not `[ -f /data/soc.db ] || npm run bootstrap; npm start` — the runtime image has no
-# dev dependencies or TS sources, so `npm run bootstrap`/`npm start` (tsx) fail there, and the real
-# database files are security.db / itsm.db / gate.db, not soc.db.
-CMD ["sh", "-c", "[ -f \"${DATA_DIR:-/data}/gate.db\" ] || node dist-server/scripts/bootstrap.mjs; node dist-server/server/src/index.mjs"]
+# `npm start` is the same chain (bootstrap, then the compiled server), so the image default and a
+# Coolify Custom Start Command of `npm start` behave identically. The database files are
+# security.db / itsm.db / gate.db (there is no soc.db); the bootstrap only fills empty stores.
+CMD ["sh", "-c", "npm start"]

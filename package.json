@@ -4,7 +4,7 @@
   "description": "Business Impact Gate \u2014 conceptual, synthetic extension for Microsoft Defender XDR manual containment (not a Microsoft product)",
   "scripts": {
     "dev": "concurrently -k -n api,web -c blue,green \"tsx watch server/src/index.ts\" \"vite\"",
-    "start": "tsx server/src/index.ts",
+    "start": "node dist-server/scripts/bootstrap.mjs && node dist-server/server/src/index.mjs",
     "seed": "tsx scripts/seed.ts",
     "generate:workbooks": "tsx scripts/generate-workbooks.ts",
     "typecheck": "tsc --noEmit -p tsconfig.json",
