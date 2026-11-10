@@ -29,6 +29,25 @@ The container's command seeds the simulators once on first start (when `$DATA_DI
 and just starts otherwise, so no separate `docker exec ... bootstrap` step is needed. The bootstrap only
 fills empty stores and never resets.
 
+### Coolify: custom start command (recommended) and healthcheck
+
+If you prefer an explicit start command instead of the image default, set Coolify
+Applications / SOC / Configuration / General / Custom Start Command to:
+
+```bash
+sh -c "node dist-server/scripts/bootstrap.mjs && node dist-server/server/src/index.mjs"
+```
+
+Use the node dist-server paths, not npm start: the runtime image installs
+production dependencies only, so npm start (tsx on TypeScript sources not in the
+image) fails there, while the compiled bundles under dist-server are what the
+image contains. The bootstrap is idempotent, so running it on every start is safe.
+
+Healthcheck: keep the /api/ready check but give the first start room to seed. In
+Coolify's Healthcheck menu, either temporarily disable the healthcheck or set the
+start period to 45s (the image also uses a 45s start period). Save and confirm
+the Saved indicator.
+
 The container runs as the `node` user. Create the host directories first and give them to uid 1000: `sudo install -d -o 1000 -g 1000 -m 700 /srv/gate/data /srv/gate/backups`. If `DATA_DIR` is missing, not a directory or not writable, the process stops with `START REFUSED` and a reason. If the databases are empty, it stops and tells you to run the bootstrap.
 
 Run exactly **one** container against a data directory. SQLite here is a single-writer store: no replicas, no shared mount between containers.

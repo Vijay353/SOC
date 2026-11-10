@@ -22,7 +22,7 @@ COPY --from=build /app/dist-server ./dist-server
 RUN mkdir -p /data /backups && chown node:node /data /backups
 USER node
 EXPOSE 4300
-HEALTHCHECK --interval=30s --timeout=3s --start-period=10s CMD node -e "fetch('http://127.0.0.1:'+(process.env.PORT||4300)+'/api/ready').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"
+HEALTHCHECK --interval=30s --timeout=3s --start-period=45s CMD node -e "fetch('http://127.0.0.1:'+(process.env.PORT||4300)+'/api/ready').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"
 # First start on an empty volume seeds the simulators once (idempotent bootstrap); afterwards it just starts.
 # NOTE: intentionally not `[ -f /data/soc.db ] || npm run bootstrap; npm start` — the runtime image has no
 # dev dependencies or TS sources, so `npm run bootstrap`/`npm start` (tsx) fail there, and the real
