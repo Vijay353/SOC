@@ -40,7 +40,7 @@ export interface AppConfig {
   trustProxy: number | string | undefined;
   /** CH-21: optional Microsoft Clarity project ID (a public identifier, not a secret). Null means analytics off. */
   clarityProjectId: string | null;
-  /** Demo reset switch. Off in production unless ALLOW_DEMO_RESET (or PULSE_ALLOW_DEMO_RESET) is on. */
+  /** Demo reset switch. Off in production unless ALLOW_DEMO_RESET (or SOC_ALLOW_DEMO_RESET) is on. */
   allowDemoReset: boolean;
   sandbox: { tenantId?: string; clientId?: string; clientSecret?: string; serviceNowInstance?: string; serviceNowUser?: string; serviceNowPassword?: string };
 }
@@ -76,32 +76,32 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env, overrides: Part
     seedOnEmpty: !production,
     persistClock: production,
     access: {
-      // Coolify aliases: PULSE_ACCESS_GATE / PULSE_ACCESS_PIN / PULSE_SESSION_SECRET.
+      // Coolify aliases: SOC_ACCESS_GATE / SOC_ACCESS_PIN / SOC_SESSION_SECRET (PULSE_ still accepted).
       // "true"/"1"/"on" all count as on; in production the gate is always on anyway.
-      enabled: production || isOn(pick(env, 'ACCESS_GATE', 'PULSE_ACCESS_GATE')),
-      pin: pick(env, 'ACCESS_PIN', 'PULSE_ACCESS_PIN') || undefined,
-      secret: pick(env, 'ACCESS_SESSION_SECRET', 'PULSE_SESSION_SECRET') || undefined,
-      sessionMinutes: Number(pick(env, 'ACCESS_SESSION_MINUTES', 'PULSE_SESSION_MINUTES') ?? 120),
+      enabled: production || isOn(pick(env, 'ACCESS_GATE', 'SOC_ACCESS_GATE', 'PULSE_ACCESS_GATE')),
+      pin: pick(env, 'ACCESS_PIN', 'SOC_ACCESS_PIN', 'PULSE_ACCESS_PIN') || undefined,
+      secret: pick(env, 'ACCESS_SESSION_SECRET', 'SOC_SESSION_SECRET', 'PULSE_SESSION_SECRET') || undefined,
+      sessionMinutes: Number(pick(env, 'ACCESS_SESSION_MINUTES', 'SOC_SESSION_MINUTES', 'PULSE_SESSION_MINUTES') ?? 120),
       secureCookie: env.ACCESS_COOKIE_SECURE ? env.ACCESS_COOKIE_SECURE === 'true' : production,
     },
     // Analytics is off locally and in tests unless ANALYTICS_ENABLED=true (or VITE_CLARITY_ALLOW_LOCAL=true); in production it needs only the ID.
-    // Coolify aliases: PULSE_CLARITY_PROJECT_ID / VITE_CLARITY_PROJECT_ID (read server-side via /api/session, never via Vite).
+    // Coolify aliases: SOC_CLARITY_PROJECT_ID / VITE_CLARITY_PROJECT_ID (read server-side via /api/session, never via Vite).
     clarityProjectId: (() => {
-      const id = pick(env, 'CLARITY_PROJECT_ID', 'PULSE_CLARITY_PROJECT_ID', 'VITE_CLARITY_PROJECT_ID', 'VITE_PUBLIC_CLARITY_PROJECT_ID');
-      const localOk = isOn(pick(env, 'ANALYTICS_ENABLED', 'CLARITY_ALLOW_LOCAL', 'VITE_CLARITY_ALLOW_LOCAL', 'PULSE_ANALYTICS_ENABLED'));
+      const id = pick(env, 'CLARITY_PROJECT_ID', 'SOC_CLARITY_PROJECT_ID', 'PULSE_CLARITY_PROJECT_ID', 'VITE_CLARITY_PROJECT_ID', 'VITE_PUBLIC_CLARITY_PROJECT_ID');
+      const localOk = isOn(pick(env, 'ANALYTICS_ENABLED', 'CLARITY_ALLOW_LOCAL', 'VITE_CLARITY_ALLOW_LOCAL', 'SOC_ANALYTICS_ENABLED', 'PULSE_ANALYTICS_ENABLED'));
       return id && /^[a-z0-9]{6,20}$/i.test(id) && (production || localOk) ? id : null;
     })(),
-    // Coolify alias: PULSE_TRUST_PROXY. "true" means exactly one proxy (1); digits stay numeric.
+    // Coolify alias: SOC_TRUST_PROXY. "true" means exactly one proxy (1); digits stay numeric.
     trustProxy: (() => {
-      const raw = pick(env, 'TRUST_PROXY', 'PULSE_TRUST_PROXY');
+      const raw = pick(env, 'TRUST_PROXY', 'SOC_TRUST_PROXY', 'PULSE_TRUST_PROXY');
       if (!raw) return undefined;
       if (/^\d+$/.test(raw)) return Number(raw);
       if (raw.toLowerCase() === 'true') return 1;
       return raw;
     })(),
-    // Coolify alias: PULSE_ALLOW_DEMO_RESET. Explicit value wins; otherwise on locally, off in production.
+    // Coolify alias: SOC_ALLOW_DEMO_RESET. Explicit value wins; otherwise on locally, off in production.
     allowDemoReset: (() => {
-      const raw = pick(env, 'ALLOW_DEMO_RESET', 'PULSE_ALLOW_DEMO_RESET');
+      const raw = pick(env, 'ALLOW_DEMO_RESET', 'SOC_ALLOW_DEMO_RESET', 'PULSE_ALLOW_DEMO_RESET');
       if (raw === undefined) return !production;
       return isOn(raw);
     })(),
