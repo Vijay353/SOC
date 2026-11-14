@@ -1,6 +1,6 @@
 /** CH-21: the analytics loader adds one tag per page, asks for analytics storage only, and sends only fixed event names. */
 import { beforeEach, describe, expect, it } from 'vitest';
-import { _resetForTests, ANALYTICS_EVENTS, installClarity, track } from '../../app/src/analytics';
+import { _resetForTests, ANALYTICS_EVENTS, identifyClarity, installClarity, track } from '../../app/src/analytics';
 
 function fakes() {
   const added: Array<{ src: string; async: boolean; dataset: Record<string, string> }> = [];
@@ -43,6 +43,17 @@ describe('analytics loader', () => {
     const f = fakes();
     track('record_opened', f.win);
     expect(f.win.clarity).toBeUndefined();
+  });
+
+  it('identifies the demo user only after install, with just the user ID', () => {
+    const f = fakes();
+    identifyClarity('analyst-1', f.win);
+    expect(f.win.clarity).toBeUndefined();
+    installClarity('abc123xyz', f.win, f.doc);
+    identifyClarity('analyst-1', f.win);
+    identifyClarity('', f.win);
+    expect(f.win.clarity!.q).toContainEqual(['identify', 'analyst-1']);
+    expect(f.win.clarity!.q!.filter((c) => c[0] === 'identify')).toHaveLength(1);
   });
 });
 

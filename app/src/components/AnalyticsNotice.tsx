@@ -1,13 +1,20 @@
 import { useEffect, useState } from 'react';
-import { decline, grant, installClarity, storedConsent, withdraw, type Consent } from '../analytics';
+import { decline, grant, identifyClarity, installClarity, storedConsent, withdraw, type Consent } from '../analytics';
 
 /** CH-21: asks before any analytics loads, and lets the visitor change their mind. Renders nothing without an ID. */
-export function AnalyticsNotice({ projectId }: { projectId: string | null | undefined }) {
+/** CH-21: asks before any analytics loads, and lets the visitor change their mind. Renders nothing without an ID. */
+export function AnalyticsNotice({ projectId, userId }: { projectId: string | null | undefined; userId: string }) {
   const [choice, setChoice] = useState<Consent | null>(() => storedConsent());
 
   useEffect(() => {
     if (projectId && choice === 'granted') installClarity(projectId);
   }, [projectId, choice]);
+
+  // Tag (or re-tag) the Clarity session with the demo identity: on first granted render
+  // and whenever the visitor switches identities. No-op until the tag is installed.
+  useEffect(() => {
+    if (projectId && choice === 'granted') identifyClarity(userId);
+  }, [projectId, choice, userId]);
 
   if (!projectId) return null;
   if (choice === null) {
@@ -21,6 +28,7 @@ export function AnalyticsNotice({ projectId }: { projectId: string | null | unde
             className="btn btn-sm btn-primary"
             onClick={() => {
               grant(projectId);
+              identifyClarity(userId);
               setChoice('granted');
             }}
           >
@@ -48,6 +56,7 @@ export function AnalyticsNotice({ projectId }: { projectId: string | null | unde
           if (choice === 'granted') withdraw();
           else {
             grant(projectId);
+            identifyClarity(userId);
             setChoice('granted');
           }
         }}

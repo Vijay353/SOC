@@ -53,6 +53,17 @@ export function track(event: AnalyticsEvent, win: Win = window): void {
   win.clarity('event', event);
 }
 
+/**
+ * Tags the Clarity session with the synthetic demo identity (e.g. which demo role is acting),
+ * so sessions can be segmented in the Clarity dashboard. No-op until the tag is installed.
+ * Only the opaque demo user ID is sent — never display names, record IDs, or free text.
+ */
+export function identifyClarity(userId: string, win: Win = window): void {
+  if (!installed || !win.clarity) return;
+  if (typeof userId !== 'string' || userId.length === 0 || userId.length > 64) return;
+  win.clarity('identify', userId);
+}
+
 export function grant(projectId: string): void {
   store('granted');
   installClarity(projectId);

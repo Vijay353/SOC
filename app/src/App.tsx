@@ -128,7 +128,7 @@ export function App() {
       </main>
       <footer className="foot">
         {session?.disclaimer ?? 'Conceptual, synthetic prototype. Not a Microsoft or ServiceNow product.'}
-        <AnalyticsNotice projectId={session?.analytics?.projectId} />
+        <AnalyticsNotice projectId={session?.analytics?.projectId} userId={user} />
       </footer>
     </>
   );
