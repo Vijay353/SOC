@@ -50,14 +50,14 @@ This document was written before any code changed. Sections A to E follow the br
 | CH-10 | Demote the Lab | `LabPage.tsx`, `App.tsx` | Framing line "not part of the Gate"; reset + failure drills stay visible; clock, concurrency, least-privilege, logs and raw output move behind "Advanced simulator controls". **Tab keeps the name "Simulator Lab"** (see D3) |
 | CH-11 | Guided 3-step import | `DataStudioPage.tsx` | Numbered steps 1 Choose file → 2 Review the check → 3 Confirm and commit. History and record browser stay visible (the e2e uses the record search) |
 | CH-12 | Readable record browser | `DataStudioPage.tsx` | Key columns first per entity, truncation with full value in `title`, sticky header |
-| CH-13 | Evidence matrix | — | Already done (V3 CH-19). No change |
+| CH-13 | Evidence matrix | none | Already done (V3 CH-19). No change |
 | CH-14 | Exportable evidence | `RequestWorkspace.tsx`, `styles.css` | JSON package exists. Add **Print decision record**: a print stylesheet that prints the decision, reasons, checks and outcome with a "Synthetic demo data" header |
-| CH-15 | Audit chain in context | — | Already done (V3 CH-17). No change |
+| CH-15 | Audit chain in context | none | Already done (V3 CH-17). No change |
 | CH-16 | First-run story | `ReviewPage.tsx` | Not a modal. The existing empty state becomes a 3-part story (problem / answer / boundary) with one large button: **Show me the SAP gateway example** (selects INC-90482 and runs the check) |
 | CH-17 | Live metrics strip | `server/src/system.ts` (one GET route), `ReviewPage.tsx`, integration test | `GET /api/metrics`: counts from `gate.db` + `machine_actions` filtered to `svc-containment-gate`. "Containment executed by the Gate: 0" is a computed count, not a literal |
 | CH-18 | Present mode | `App.tsx`, `styles.css` | Header toggle; larger type, Lab tab hidden, metrics pinned; `sessionStorage` only |
 | CH-19 | Investor one-pager | `docs/INVESTOR-ONE-PAGER.md` | Section E condensed; hypotheses labelled |
-| CH-20 | Access gate | — | Already done (V3 CH-20) |
+| CH-20 | Access gate | none | Already done (V3 CH-20) |
 
 **Glossary applied in CH-2:** *containment* for the business audience ("Full isolation" kept where it is the Defender action); *business impact check* for evaluation; *approval request* in prose (the stored object stays "approval packet" where tests assert it); *four-eyes approval* = dual approval; *demo workspace* for simulator context; never "prevents outages", always "shows business impact before containment".
 
@@ -189,3 +189,31 @@ CH-4/5/7, B4, B5 → 1 and E5 ("30 seconds"). CH-6 → 1, time pressure. CH-8, C
 - ITIC, *2024 Hourly Cost of Downtime Survey*, https://itic-corp.com/?p=3152
 - Siemens / Senseye, *The True Cost of Downtime 2024*, https://assets.new.siemens.com/siemens/assets/api/uuid:1b43afb5-2d07-47f7-9eb7-893fe7d0bc59/TCOD-2024_original.pdf
 - Parametrix, *CrowdStrike's Impact on the Fortune 500* (reported by Insurance Journal, Business Insurance, Axios, July 2024)
+
+---
+
+## Completion summary (filled in after implementation)
+
+Per-change evidence, SHAs and rollbacks: [IMPLEMENTATION-STATUS.md › Product-clarity change register](IMPLEMENTATION-STATUS.md#product-clarity-change-register).
+
+| Measure | Baseline `e907954` | After |
+|---|---|---|
+| Unit + integration | 237/238 (1 fail) | 252/252 |
+| E2E | 26/27 (1 fail) | 32/32 (27 existing + 5 new) |
+| Existing assertions changed | n/a | 1 (CH-0, analytics identify, disclosed) |
+| Primary action on decision screen (1280x800) | ~1,250 px down, below the fold | In the first viewport (e2e-asserted) |
+| First visit to decision | Read hints, pick a device, press Prepare | One press: "Show me the PRD-SAP-GW02 example" |
+| Smallest text | 9.5 px | 14 px (body 16 px) |
+| Controls under 24 px (WCAG 2.5.8) | every disclosure toggle (21 px) | none |
+| axe WCAG 2.2 AA, 12 page states light + dark | 3 contrast failures (dark-mode primary button, pre-existing) | 0 |
+| Backend changes | n/a | 1 read-only route (`GET /api/metrics`); policy, orchestrator, store, simulators untouched |
+
+**Value delivered, in business terms**
+- *Efficiency:* the analyst sees decision, reasons and the one permitted action without scrolling, and knows what the click will do before pressing it. The approver decides from a card that names the business service and the time left.
+- *Trust:* the lifecycle display can no longer show a state that does not exist; a race that could show one device's decision under another device's name is fixed; "containment executed by the Gate: 0" is computed, and a test proves it.
+- *Usability:* senior-legible type, 44 px targets for the main controls, story-first on phones, zero axe violations.
+- *Sales readiness:* Present mode, a printable decision record and an honest one-pager ([INVESTOR-ONE-PAGER.md](INVESTOR-ONE-PAGER.md)).
+
+**Deviations from the spec:** CH-10 keeps the tab name "Simulator Lab" and the fault buttons visible (unmodified e2e depends on both). CH-3's full page refactor is deferred. CH-13, CH-15 and CH-20 were already implemented by the repo's V3 work.
+
+**Follow-ups:** validate the first-visit journey with 5 to 8 real users including at least two aged 65+ (the repo has no user research); approver notifications (out of scope); consider a light/dark/large-text preference beyond Present mode; decide the analytics identify contract (D1).

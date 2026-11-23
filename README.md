@@ -26,10 +26,10 @@ Production-style single process: `npm run build && npm run build:server && npm s
 | `npm run dev` | API (tsx watch) + Vite dev server with `/api` proxy |
 | `npm start` | Bootstrap (idempotent) + compiled API/server; serves `app/dist` if built. Needs `npm run build:server` first |
 | `npm run typecheck` / `npm run lint` | `tsc --noEmit` (strict) / ESLint |
-| `npm test` | Vitest unit + integration (92 tests) |
+| `npm test` | Vitest unit + integration (252 tests) |
 | `npm run build` | Vite production build of the React app |
 | `npm run secret-scan` | Fails if secrets/server config reach the bundle or source |
-| `npm run test:e2e` | Playwright browser tests (8) against the built app — run `npm run build` first |
+| `npm run test:e2e` | Playwright browser tests (32, two server projects) against the built app; run `npm run build` first |
 | `npm run verify` | All of the above in order |
 | `npm run generate:workbooks` | Regenerate the sample workbook, CSVs and import fixtures |
 
@@ -37,13 +37,18 @@ If Playwright cannot download its browser in your environment, set `PW_CHROMIUM_
 
 ## Three-minute demo (Excel → decision → verified outcome)
 
+0. **First visit.** Review opens with a three-line story and one button, **Show me the PRD-SAP-GW02 example**, which runs the steps below for you.
 1. **Review → PRD-SAP-GW02 → Prepare isolation review.** Within 30 seconds the screen answers: requested action (*Full isolate PRD-SAP-GW02*), why it's risky (Tier 0, 1,420 live sessions, 18 active critical workflows, active change freeze, cited runbook line), the decision (`REQUIRE_DUAL_APPROVAL`) and the safety state (*No containment executed*).
-2. **Stage dual-approval packet.** One HTTP call to the ITSM simulator creates `CAP-2026-1042`; the Gate reads it back, re-checks the device, and only then shows `RESPONSE_READY → WAITING_FOR_DUAL_APPROVAL`, *Read-back VERIFIED*, *Device mutation NONE*. Open **Technical evidence** for the real trace (every HTTP attempt), policy input, evidence hashes, tool payload and hash-chained audit.
+2. **Send for dual approval** (the primary button in *What happens next*; it says what it will do before you click). One HTTP call to the ITSM simulator creates `CAP-2026-1042`; the Gate reads it back, re-checks the device, and only then shows `RESPONSE_READY → WAITING_FOR_DUAL_APPROVAL`, *Read-back VERIFIED*, *Device mutation NONE*. Open **Technical evidence** for the real trace (every HTTP attempt), policy input, evidence hashes, tool payload and hash-chained audit.
 3. **Approvals.** Switch *Acting as* to Jordan Reyes (incident commander) → Approve; switch to Maya Okafor (SAP owner) → Approve. Back on Review the request is `APPROVED_FOR_MANUAL_EXECUTION` and the device is still not isolated — approval authorizes the analyst; execution stays in Defender.
 4. **Excel changes the outcome.** Review → PRD-MES-APP01 → Prepare: `INSUFFICIENT_EVIDENCE` (CMDB record ~9 h old). **Data Studio** → import `fixtures/imports/files/valid-fix-stale-mes-cmdb.xlsx` → preview shows `CI-007120 (updated: lastVerifiedAt)` → confirm → commit (1 row re-read and verified). Back on Review → **Re-evaluate**: now `REQUIRE_DUAL_APPROVAL` with the MES owner as approver.
-5. **Failure and recovery.** **Simulator Lab** → *Reset scenario*, then *ITSM write commits but response times out* → back on Review, prepare and stage the SAP gateway: the first attempt times out, the retry returns the existing packet (`duplicate=true`), and exactly one packet exists. Try *ITSM corrupts the next read-back*: the Gate refuses to claim success → `VERIFICATION_FAILED`. *Concurrent incident update* before staging → `STALE_INCIDENT_VERSION`, re-evaluate, stage. *Advance clock +16 min* → the packet expires; expiry never approves.
+5. **Failure and recovery.** **Simulator Lab** (demo controls, outside the Gate) → *Reset scenario*, then under *Failure drills* *ITSM write commits but response times out* → back on Review, prepare and stage the SAP gateway: the first attempt times out, the retry returns the existing packet (`duplicate=true`), and exactly one packet exists. Try *ITSM corrupts the next read-back*: the Gate refuses to claim success → `VERIFICATION_FAILED`. Under *Advanced simulator controls*: *Concurrent incident update* before staging → `STALE_INCIDENT_VERSION`, re-evaluate, stage. *Advance clock +16 min* → the packet expires; expiry never approves.
 
 Reset any time from **Simulator Lab → Reset scenario** or `npm run seed`.
+
+**Presenting?** The **Present** toggle in the header enlarges the text, hides the Simulator Lab and pins the live counts (*Containment actions executed by the Gate: 0*, computed from the simulator's records). **Print decision record** on any review prints a one-request summary marked as synthetic.
+
+Product clarity and UX plan (business case, issue tree, accessibility targets): [docs/PRODUCT-UX-PLAN.md](docs/PRODUCT-UX-PLAN.md) · investor one-pager: [docs/INVESTOR-ONE-PAGER.md](docs/INVESTOR-ONE-PAGER.md).
 
 ## Scenarios shipped
 
