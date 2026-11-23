@@ -28,6 +28,7 @@ export function ReviewPage({ session, onChanged, onSwitchUser, present = false }
   const [stageResult, setStageResult] = useState<Record<string, unknown> | null>(null);
 
   const workspaceRef = useRef<HTMLElement>(null);
+  const scrollWhenReady = useRef(false);
   const keyOf = (q: QueueItem) => `${q.incidentId}|${q.machineId}`;
   const selected = queue?.find((q) => keyOf(q) === target) ?? null;
 
@@ -70,7 +71,11 @@ export function ReviewPage({ session, onChanged, onSwitchUser, present = false }
 
   useEffect(() => {
     // On narrow screens the queue stacks above the workspace; bring the selected review into view.
-    if (target && target !== rememberedTarget && window.innerWidth < 1100) workspaceRef.current?.scrollIntoView({ block: 'start' });
+    if (target && target !== rememberedTarget && window.innerWidth < 1100) {
+      workspaceRef.current?.scrollIntoView({ block: 'start' });
+      // The queue above may regroup once the check finishes; scroll again when the decision has rendered.
+      scrollWhenReady.current = true;
+    }
     rememberedTarget = target;
     setStageResult(null);
     setError(null);
@@ -80,6 +85,13 @@ export function ReviewPage({ session, onChanged, onSwitchUser, present = false }
   }, [target, selected?.latestRequest?.requestId]);
 
   /** forTarget: the selection when the operation started; a view for an older selection is never shown. */
+  useEffect(() => {
+    if (view && scrollWhenReady.current) {
+      scrollWhenReady.current = false;
+      workspaceRef.current?.scrollIntoView({ block: 'start' });
+    }
+  }, [view, queue]);
+
   const refreshAll = async (requestId: string | undefined, forTarget: string | null) => {
     await loadQueue();
     if (requestId) await loadView(requestId, forTarget);
@@ -162,8 +174,9 @@ export function ReviewPage({ session, onChanged, onSwitchUser, present = false }
 
   return (
     <>
-      <MetricsStrip version={metricsVersion} pinned={present} />
-      <div className="review-layout">
+      {/* Pinned on top only in Present mode; otherwise at the bottom so it never shifts the decision while it loads. */}
+      {present && <MetricsStrip version={metricsVersion} pinned />}
+      <div className={`review-layout ${selected ? '' : 'nothing-selected'}`}>
         <aside className="queue" aria-label="Manual response queue">
           <h2>Containment requests</h2>
           <p className="queue-hint">Devices an analyst may want to cut off from the network. Pick one to check its business impact.</p>
@@ -270,6 +283,7 @@ export function ReviewPage({ session, onChanged, onSwitchUser, present = false }
           )}
         </section>
       </div>
+      {!present && <MetricsStrip version={metricsVersion} pinned={false} />}
     </>
   );
 }

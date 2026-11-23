@@ -1547,3 +1547,35 @@ html.present .code-secondary,
 html.present .code-inline {
   opacity: 0.7;
 }
+
+/* Pre-existing contrast defect found by axe (WCAG 1.4.3): white on the dark-mode accent #5b9bf0 is 2.84:1.
+   Dark text on it is ~6.6:1. Light mode is unchanged (white on #1f5fbf passes). */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) .btn-primary {
+    color: #0b1220;
+  }
+}
+
+/* WCAG 2.5.8: disclosure toggles were 21px tall. Page-level ones now meet the 36px compact target; dense ones inside
+   the technical trace stay compact but above 24px. Tabs meet 44px. */
+summary {
+  cursor: pointer;
+  padding-block: 8px;
+}
+.trace summary,
+.inspector-body summary {
+  padding-block: 4px;
+}
+.tab {
+  min-height: var(--tap-min);
+}
+
+/* On phones and narrow windows the first-run story comes before the queue, so the first step is on screen. */
+@media (max-width: 1100px) {
+  .review-layout.nothing-selected > section {
+    order: -1;
+  }
+}
+.review-layout + .metrics-strip {
+  margin-top: var(--space-5);
+}
