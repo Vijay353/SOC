@@ -4,6 +4,7 @@ import type { QueueItem, RequestView, Session } from '../types';
 import { ErrorBanner, personName, StateBadge } from '../ui';
 import { track } from '../analytics';
 import { RequestWorkspace } from './RequestWorkspace';
+import { triage } from '../triage';
 
 interface Props {
   session: Session | null;
@@ -41,11 +42,20 @@ export function ReviewPage({ session, onChanged, onSwitchUser }: Props) {
     }
   }, []);
 
-  const loadView = useCallback(async (requestId: string) => {
+  // B11: responses that arrive after the person picked another device are dropped. Without this, a slow reload of
+  // device A could render A's decision while device B is selected.
+  const targetRef = useRef<string | null>(target);
+  useEffect(() => {
+    targetRef.current = target;
+  }, [target]);
+  const stillCurrent = (forTarget: string | null) => targetRef.current === forTarget;
+
+  const loadView = useCallback(async (requestId: string, forTarget: string | null = targetRef.current) => {
     try {
-      setView(await api<RequestView>('GET', `/requests/${requestId}`));
+      const v = await api<RequestView>('GET', `/requests/${requestId}`);
+      if (targetRef.current === forTarget) setView(v);
     } catch (e) {
-      setError({ code: (e as ApiError).code, message: (e as Error).message });
+      if (targetRef.current === forTarget) setError({ code: (e as ApiError).code, message: (e as Error).message });
     }
   }, []);
 
@@ -64,27 +74,28 @@ export function ReviewPage({ session, onChanged, onSwitchUser }: Props) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [target, selected?.latestRequest?.requestId]);
 
-  const refreshAll = async (requestId?: string) => {
+  /** forTarget: the selection when the operation started; a view for an older selection is never shown. */
+  const refreshAll = async (requestId: string | undefined, forTarget: string | null) => {
     await loadQueue();
-    if (requestId) await loadView(requestId);
+    if (requestId) await loadView(requestId, forTarget);
     onChanged();
   };
 
-  const prepare = async () => {
-    if (!selected) return;
+  const prepare = async (item: QueueItem | null = selected) => {
+    if (!item) return;
     track('scenario_started');
     setBusy('prepare');
     setError(null);
     try {
-      const eventId = `evt-${selected.incidentId.toLowerCase()}-isolate-${Date.now().toString(36)}`;
+      const eventId = `evt-${item.incidentId.toLowerCase()}-isolate-${Date.now().toString(36)}`;
       const r = await api<{ requestId: string; duplicate: boolean; view: RequestView }>('POST', '/events/manual-isolation-requested', {
         eventId,
-        incidentId: selected.incidentId,
-        machineId: selected.machineId,
+        incidentId: item.incidentId,
+        machineId: item.machineId,
         requestedAction: 'FULL_ISOLATION',
       });
-      setView(r.view);
-      await refreshAll(r.requestId);
+      if (stillCurrent(keyOf(item))) setView(r.view);
+      await refreshAll(r.requestId, keyOf(item));
     } catch (e) {
       setError({ code: (e as ApiError).code, message: (e as Error).message });
     } finally {
@@ -94,17 +105,20 @@ export function ReviewPage({ session, onChanged, onSwitchUser }: Props) {
 
   const stage = async () => {
     if (!view) return;
+    const forTarget = targetRef.current;
     setBusy('stage');
     setError(null);
     try {
       const r = await api<{ result: Record<string, unknown>; view: RequestView }>('POST', `/requests/${view.request.requestId}/stage`);
-      setStageResult(r.result);
-      setView(r.view);
+      if (stillCurrent(forTarget)) {
+        setStageResult(r.result);
+        setView(r.view);
+      }
       track('scenario_completed');
-      await refreshAll(view.request.requestId);
+      await refreshAll(view.request.requestId, forTarget);
     } catch (e) {
       const body = (e as ApiError).body as { view?: RequestView } | null;
-      if (body?.view) setView(body.view);
+      if (body?.view && stillCurrent(forTarget)) setView(body.view);
       setError({ code: (e as ApiError).code, message: (e as Error).message });
       await loadQueue();
     } finally {
@@ -114,16 +128,28 @@ export function ReviewPage({ session, onChanged, onSwitchUser }: Props) {
 
   const reevaluate = async () => {
     if (!view) return;
+    const forTarget = targetRef.current;
     setBusy('evaluate');
     setError(null);
     try {
-      setView(await api<RequestView>('POST', `/requests/${view.request.requestId}/evaluate`));
-      await refreshAll(view.request.requestId);
+      const v = await api<RequestView>('POST', `/requests/${view.request.requestId}/evaluate`);
+      if (stillCurrent(forTarget)) setView(v);
+      await refreshAll(view.request.requestId, forTarget);
     } catch (e) {
       setError({ code: (e as ApiError).code, message: (e as Error).message });
     } finally {
       setBusy(null);
     }
+  };
+
+  // CH-16: the primary seeded scenario, offered as a one-press example on first visit.
+  const primary = session?.scenarios[0];
+  const example = queue?.find((q) => primary && q.incidentId === primary.incidentId && q.machineId === primary.machineId) ?? null;
+  const showExample = async () => {
+    if (!example) return;
+    setTarget(keyOf(example));
+    track('record_opened');
+    await prepare(example);
   };
 
   const scenarioLabel = (q: QueueItem) =>
@@ -132,8 +158,8 @@ export function ReviewPage({ session, onChanged, onSwitchUser }: Props) {
   return (
     <div className="review-layout">
       <aside className="queue" aria-label="Manual response queue">
-        <h2>Manual response queue</h2>
-        <p className="queue-hint">Active incidents with a device an analyst may want to isolate. Pick one to prepare a review.</p>
+        <h2>Containment requests</h2>
+        <p className="queue-hint">Devices an analyst may want to cut off from the network. Pick one to check its business impact.</p>
         {!queue && !queueFailed && <p className="queue-hint">Loading…</p>}
         {!queue && queueFailed && (
           <p className="queue-hint" data-testid="queue-empty">
@@ -148,28 +174,38 @@ export function ReviewPage({ session, onChanged, onSwitchUser }: Props) {
             No active incidents right now. When an incident with a device is active, it appears here.
           </p>
         )}
-        <ul>
-          {queue?.map((q) => (
-            <li key={keyOf(q)} className="queue-item" data-active={keyOf(q) === target}>
-              <button
-                onClick={() => {
-                  setTarget(keyOf(q));
-                  track('record_opened');
-                }}
-                aria-current={keyOf(q) === target ? 'true' : undefined} data-testid={`queue-${q.incidentId}`}>
-                <span className="row" style={{ justifyContent: 'space-between' }}>
-                  <span className="queue-host">{q.computerDnsName}</span>
-                  {q.latestRequest ? <StateBadge state={q.latestRequest.state} /> : <span className="badge">No review</span>}
-                </span>
-                <span className="queue-title">{q.displayName}</span>
-                <span className="queue-meta">
-                  {q.incidentId} · r{q.revision} · {q.severity}
-                  {scenarioLabel(q) ? ` · ${scenarioLabel(q)}` : ''}
-                </span>
-              </button>
-            </li>
+        {queue &&
+          triage(queue).map((g) => (
+            <div key={g.group} className="queue-group" data-testid={`queue-group-${g.group}`}>
+              <h3 className="queue-group-title">
+                {g.label} <span className="queue-group-count">{g.items.length}</span>
+              </h3>
+              <ul>
+                {g.items.map((q) => (
+                  <li key={keyOf(q)} className="queue-item" data-active={keyOf(q) === target}>
+                    <button
+                      onClick={() => {
+                        setTarget(keyOf(q));
+                        track('record_opened');
+                      }}
+                      aria-current={keyOf(q) === target ? 'true' : undefined}
+                      data-testid={`queue-${q.incidentId}`}
+                    >
+                      <span className="queue-row">
+                        <span className="queue-host">{q.computerDnsName}</span>
+                        {q.latestRequest ? <StateBadge state={q.latestRequest.state} /> : <span className="badge">Not checked yet</span>}
+                      </span>
+                      <span className="queue-title">{q.displayName}</span>
+                      <span className="queue-meta">
+                        {q.incidentId} · r{q.revision} · {q.severity}
+                        {scenarioLabel(q) ? ` · ${scenarioLabel(q)}` : ''}
+                      </span>
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            </div>
           ))}
-        </ul>
       </aside>
 
       <section aria-live="polite" ref={workspaceRef}>
@@ -177,25 +213,37 @@ export function ReviewPage({ session, onChanged, onSwitchUser }: Props) {
         {error?.code === 'ROLE_NOT_PERMITTED' && <DemoSwitch session={session} onSwitchUser={onSwitchUser} />}
         {!selected && target && !queue && <div className="panel">Loading review…</div>}
         {!selected && !(target && !queue) && (
-          <div className="empty">
+          <div className="empty story" data-testid="first-run">
             <h2>Check business impact before a high-risk containment</h2>
-            <p>Before a manual Full isolation runs, the Gate reconciles Defender evidence with CMDB ownership, live dependencies, change freezes and cited runbook constraints.</p>
-            <ol>
-              <li>Pick a device from the queue (the SAP gateway is the primary scenario).</li>
-              <li>Select <strong>Prepare isolation review</strong> to evaluate current evidence.</li>
-              <li>If the policy requires it, stage one verified dual-approval packet. No device is ever changed.</li>
+            <p className="story-lead">Cutting a device off the network stops an attacker. On the wrong device it can also stop a warehouse, a payment system or a factory line.</p>
+            <ol className="story-steps">
+              <li>
+                <strong>The risk.</strong> One click on <em>Full isolation</em> in Defender can interrupt a business service nobody checked.
+              </li>
+              <li>
+                <strong>What the Gate does.</strong> It checks the device against business records (owner, live users, change freezes, runbooks) and decides whether two owners must approve first.
+              </li>
+              <li>
+                <strong>What it never does.</strong> It never isolates anything. Every name and number here is synthetic demo data.
+              </li>
             </ol>
+            {example && (
+              <button className="btn btn-primary btn-lg" onClick={() => void showExample()} disabled={busy !== null || !!session?.setupError} data-testid="show-example">
+                {busy === 'prepare' ? 'Checking the evidence…' : `Show me the ${example.computerDnsName} example`}
+              </button>
+            )}
+            <p className="small muted">Or pick any device from the list. Checking reads evidence only; nothing upstream changes.</p>
           </div>
         )}
         {selected && !view && (
           <div className="panel">
             <div className="eyebrow">Proposed manual response</div>
-            <h1 style={{ margin: '4px 0 6px', fontSize: 24 }}>Full isolate {selected.computerDnsName}</h1>
+            <h1 style={{ margin: '4px 0 6px', fontSize: 'var(--text-2xl)' }}>Full isolate {selected.computerDnsName}</h1>
             <p className="muted" style={{ marginTop: 0 }}>
               {selected.incidentId} · {selected.displayName} · {selected.alertCount} alert(s) · device currently {selected.isolationState.replace('_', ' ').toLowerCase()}
             </p>
-            <p>The Gate will read Defender, CMDB, live-activity and runbook evidence, then apply policy {session?.policy.version ?? '(loading)'}. Evaluating changes nothing upstream.</p>
-            <button className="btn btn-primary" onClick={prepare} disabled={busy !== null || !!session?.setupError}>
+            <p>The Gate will read Defender, CMDB, live-activity and runbook evidence, then apply policy {session?.policy.version ?? '(loading)'}. Checking changes nothing upstream.</p>
+            <button className="btn btn-primary btn-lg" onClick={() => void prepare()} disabled={busy !== null || !!session?.setupError}>
               {busy === 'prepare' ? 'Evaluating evidence…' : 'Prepare isolation review'}
             </button>
           </div>
