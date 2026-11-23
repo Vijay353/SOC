@@ -79,7 +79,7 @@ export function App() {
         </div>
         <nav className="tabs" role="tablist" aria-label="Sections">
           {TABS.map((t) => (
-            <button key={t.id} role="tab" className="tab" aria-selected={tab === t.id} aria-controls="main" id={`tab-${t.id}`} onClick={() => setTab(t.id)}>
+            <button key={t.id} role="tab" className={`tab ${t.id === 'lab' ? 'tab-secondary' : ''}`} aria-selected={tab === t.id} aria-controls="main" id={`tab-${t.id}`} onClick={() => setTab(t.id)}>
               {t.label}
               {t.id === 'approvals' && <CountBadge count={waiting} label={waiting === 1 ? 'request waiting for you' : 'requests waiting for you'} testId="approvals-waiting" />}
             </button>

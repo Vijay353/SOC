@@ -1459,3 +1459,59 @@ td {
   height: 24px;
   margin-top: 4px;
 }
+
+/* CH-11: numbered import steps. */
+.import-step {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: var(--text-m);
+  margin: var(--space-4) 0 var(--space-2);
+}
+.search-input,
+.select-input {
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-s);
+  padding: 6px 10px;
+  min-height: var(--tap-min-compact);
+  background: var(--surface);
+}
+
+/* CH-10: the Lab is demo infrastructure; it is quieter than the product tabs and framed as outside the Gate. */
+.tab-secondary {
+  margin-left: var(--space-3);
+  border-left: 1px solid #334155;
+  border-top-left-radius: 0;
+  border-bottom-left-radius: 0;
+  font-weight: 500;
+  opacity: 0.85;
+}
+.lab-frame {
+  margin-bottom: var(--space-4);
+}
+details.advanced > summary {
+  cursor: pointer;
+  min-height: var(--tap-min);
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+}
+.advanced-block {
+  border-top: 1px solid var(--border);
+  padding-top: var(--space-3);
+  margin-top: var(--space-3);
+}
+.advanced-block h3 {
+  margin: 0 0 var(--space-2);
+  font-size: var(--text-m);
+}
+details.advanced > summary::before {
+  content: '\25B8';
+  display: inline-block;
+  width: 1em;
+  color: var(--text-2);
+}
+details.advanced[open] > summary::before {
+  content: '\25BE';
+}

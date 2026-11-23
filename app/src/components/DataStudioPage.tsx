@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { api, ApiError, upload } from '../api';
+import { recordColumns } from '../recordColumns';
 import { codeWords, ErrorBanner, fmtDateTime } from '../ui';
 
 const ENTITIES = ['Incidents', 'Devices', 'Alerts', 'DeviceActivity', 'Users', 'ConfigItems', 'Dependencies', 'ChangeFreezes', 'Documents'] as const;
@@ -43,7 +44,6 @@ interface HistoryItem {
   committedAt: string | null;
 }
 
-/** Secondary surface: edit simulator data through Excel/CSV. Interchange only, not an integration. */
 /** Secondary surface: edit simulator data through Excel/CSV. Interchange only, not an integration. */
 export function DataStudioPage({ onChanged, demoResetAllowed = true }: { onChanged: () => void; demoResetAllowed?: boolean }) {
   const [file, setFile] = useState<File | null>(null);
@@ -140,15 +140,15 @@ export function DataStudioPage({ onChanged, demoResetAllowed = true }: { onChang
 
   const errors = preview?.issues.filter((i) => i.severity === 'error') ?? [];
   const warnings = preview?.issues.filter((i) => i.severity === 'warning') ?? [];
-  const columns = records?.value[0] ? Object.keys(records.value[0]).slice(0, 12) : [];
+  const { shown: columns, hidden: hiddenColumns } = recordColumns(browse, records?.value[0] ? Object.keys(records.value[0]) : []);
 
   return (
     <div>
       <section className="panel">
-        <h2>Data Studio: simulator data in Excel</h2>
+        <h2>Data Studio: fix the evidence in Excel</h2>
         <p className="lead">
-          Download the sample workbook, edit records in Excel, and import them into Mock Microsoft Security and Mock ITSM/CMDB. Every import is validated, previewed and confirmed before anything changes. This is data interchange for the
-          simulators. It is not a real integration and not a system of record.
+          When the Gate blocks a request because a record is old or wrong, fix it here: export, edit in Excel, import. Every import is checked, previewed and confirmed before anything changes. This edits the demo simulators only; it
+          is not a real integration and not a system of record.
         </p>
         <div className="row">
           <a className="btn" href="/api/data/template.xlsx" download>
@@ -183,11 +183,14 @@ export function DataStudioPage({ onChanged, demoResetAllowed = true }: { onChang
       <ErrorBanner error={error} />
 
       <section className="panel" aria-labelledby="imp">
-        <h2 id="imp">Import</h2>
-        <p className="lead">
+        <h2 id="imp">Import a file in three steps</h2>
+        <p className="small muted">
           <strong>Merge</strong> upserts rows and never deletes (keep the exported <code>revision</code> to update Incidents, Devices and ConfigItems). <strong>Replace</strong> loads a complete workbook and clears workflow state. CSV imports one
           entity in merge mode.
         </p>
+        <h3 className="import-step">
+          <span className="step-num">1</span>Choose a file
+        </h3>
         <div className="row" style={{ alignItems: 'flex-end' }}>
           <label className="field">
             File (.xlsx or .csv, max 5 MB)
@@ -221,10 +224,14 @@ export function DataStudioPage({ onChanged, demoResetAllowed = true }: { onChang
               </select>
             </label>
           )}
-          <button className="btn" onClick={doPreview} disabled={!file || busy} data-testid="preview-import">
-            {busy ? 'Validating…' : 'Validate & preview'}
-          </button>
         </div>
+        <h3 className="import-step" data-done={preview ? 'true' : undefined}>
+          <span className="step-num">2</span>Check it: nothing changes yet
+        </h3>
+        <button className="btn btn-primary" onClick={doPreview} disabled={!file || busy} data-testid="preview-import">
+          {busy ? 'Validating…' : 'Validate & preview'}
+        </button>
+        {!file && <p className="small muted">Choose a file first.</p>}
 
         {preview && (
           <div className="stack" style={{ marginTop: 16 }} data-testid="import-preview">
@@ -307,6 +314,11 @@ export function DataStudioPage({ onChanged, demoResetAllowed = true }: { onChang
               </div>
             )}
             {preview.canCommit && (
+              <h3 className="import-step">
+                <span className="step-num">3</span>Confirm and commit
+              </h3>
+            )}
+            {preview.canCommit && (
               <div className="row">
                 <label className="row small">
                   <input type="checkbox" checked={confirmed} onChange={(e) => setConfirmed(e.target.checked)} data-testid="confirm-import" />
@@ -337,7 +349,65 @@ export function DataStudioPage({ onChanged, demoResetAllowed = true }: { onChang
         )}
       </section>
 
-      <div className="grid-2">
+        <section className="panel" aria-labelledby="rec">
+          <h2 id="rec">Record browser</h2>
+          <p className="lead">Live simulator records. Watch them change as you import or as the workflow stages and decides approvals.</p>
+          <div className="row" style={{ marginBottom: 10 }}>
+            <select value={browse} onChange={(e) => setBrowse(e.target.value)} aria-label="Entity" className="select-input">
+              {[...ENTITIES, 'ApprovalPackets'].map((x) => (
+                <option key={x}>{x}</option>
+              ))}
+            </select>
+            <input type="search" placeholder="Search…" value={q} onChange={(e) => setQ(e.target.value)} aria-label="Search records" className="field search-input" />
+            {browse !== 'ApprovalPackets' && (
+              <a className="btn btn-sm" href={`/api/data/export/${browse}.csv`} download>
+                CSV
+              </a>
+            )}
+            <span className="small muted">
+              {records ? `${records.value.length} of ${records.total} records` : ''}
+              {hiddenColumns.length > 0 ? ` · ${hiddenColumns.length} more column${hiddenColumns.length === 1 ? '' : 's'} (${hiddenColumns.join(', ')}) in the CSV` : ''}
+            </span>
+          </div>
+          <div className="table-wrap">
+            <table className="data">
+              <thead>
+                <tr>
+                  {columns.map((c) => (
+                    <th key={c}>{c}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {records && records.value.length === 0 && (
+                  <tr>
+                    <td data-testid="records-empty">
+                      {records.total === 0 ? (
+                        `No ${browse} records yet.`
+                      ) : (
+                        <>
+                          No records match "{q}".{' '}
+                          <button className="btn btn-sm" onClick={() => setQ('')}>
+                            Clear search
+                          </button>
+                        </>
+                      )}
+                    </td>
+                  </tr>
+                )}
+                {records?.value.map((r, i) => (
+                  <tr key={i}>
+                    {columns.map((c) => (
+                      <td key={c} className="small" title={fullCell(r[c])}>
+                        {formatCell(r[c])}
+                      </td>
+                    ))}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </section>
         <section className="panel" aria-labelledby="hist">
           <h2 id="hist">Import history</h2>
           <p className="lead">Each commit keeps a pre-commit snapshot. Restore returns the simulators to that snapshot and clears workflow state.</p>
@@ -379,65 +449,13 @@ export function DataStudioPage({ onChanged, demoResetAllowed = true }: { onChang
           </div>
         </section>
 
-        <section className="panel" aria-labelledby="rec">
-          <h2 id="rec">Record browser</h2>
-          <p className="lead">Live simulator records. Watch them change as you import or as the workflow stages and decides approvals.</p>
-          <div className="row" style={{ marginBottom: 10 }}>
-            <select value={browse} onChange={(e) => setBrowse(e.target.value)} aria-label="Entity">
-              {[...ENTITIES, 'ApprovalPackets'].map((x) => (
-                <option key={x}>{x}</option>
-              ))}
-            </select>
-            <input type="search" placeholder="Search…" value={q} onChange={(e) => setQ(e.target.value)} aria-label="Search records" className="field" style={{ border: '1px solid var(--border-strong)', borderRadius: 6, padding: '6px 9px' }} />
-            {browse !== 'ApprovalPackets' && (
-              <a className="btn btn-sm" href={`/api/data/export/${browse}.csv`} download>
-                CSV
-              </a>
-            )}
-            <span className="small muted">{records ? `${records.value.length} of ${records.total}` : ''}</span>
-          </div>
-          <div className="table-wrap">
-            <table className="data">
-              <thead>
-                <tr>
-                  {columns.map((c) => (
-                    <th key={c}>{c}</th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {records && records.value.length === 0 && (
-                  <tr>
-                    <td data-testid="records-empty">
-                      {records.total === 0 ? (
-                        `No ${browse} records yet.`
-                      ) : (
-                        <>
-                          No records match "{q}".{' '}
-                          <button className="btn btn-sm" onClick={() => setQ('')}>
-                            Clear search
-                          </button>
-                        </>
-                      )}
-                    </td>
-                  </tr>
-                )}
-                {records?.value.map((r, i) => (
-                  <tr key={i}>
-                    {columns.map((c) => (
-                      <td key={c} className="small">
-                        {formatCell(r[c])}
-                      </td>
-                    ))}
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </section>
-      </div>
     </div>
   );
+}
+
+function fullCell(v: unknown): string {
+  if (v === null || v === undefined) return '(empty)';
+  return typeof v === 'object' ? JSON.stringify(v) : String(v);
 }
 
 function formatCell(v: unknown): string {
