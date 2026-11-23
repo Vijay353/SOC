@@ -57,31 +57,25 @@ export function LabPage({ session, onChanged }: Props) {
 
   return (
     <div>
+      <div className="banner banner-info lab-frame" data-testid="lab-frame">
+        <strong>Demo controls, not part of the Gate.</strong> These buttons make the simulated Defender and ITSM misbehave so you can see the Gate fail safely. A real deployment has none of them.
+      </div>
       <ErrorBanner error={error} />
       <div className="grid-2">
         <section className="panel">
-          <h2>Scenario</h2>
+          <h2>Start over</h2>
           <p className="lead">
-            Reset restores all three stores (Mock Security, Mock ITSM, Gate) to the synthetic seed and rewinds the scenario clock to {session ? fmtDateTime(session.clock.scenarioStart) : '…'}.
+            Reset puts all three demo stores (Mock Security, Mock ITSM, Gate) back to the synthetic starting data and rewinds the scenario clock to {session ? fmtDateTime(session.clock.scenarioStart) : '…'}.
           </p>
           <div className="row">
             {session?.demoReset?.allowed === false ? (
               <p className="small muted">Reset scenario is disabled in production.</p>
             ) : (
-              <button className="btn" onClick={() => run(() => api('POST', '/lab/reset'))} data-testid="reset-scenario">
+              <button className="btn btn-primary" onClick={() => run(() => api('POST', '/lab/reset'))} data-testid="reset-scenario">
                 Reset scenario
               </button>
             )}
-            <button className="btn" onClick={() => run(() => api('POST', '/lab/clock', { advanceMinutes: 6 }))}>
-              Advance clock +6 min
-            </button>
-            <button className="btn" onClick={() => run(() => api('POST', '/lab/clock', { advanceMinutes: 16 }))} data-testid="advance-16">
-              Advance clock +16 min
-            </button>
           </div>
-          <p className="small muted">
-            Clock mode: {session?.clock.mode} · manual offset {session?.clock.manualOffsetMinutes ?? 0} min. +6 min expires an unstaged evaluation; +16 min expires a staged approval packet.
-          </p>
         </section>
 
         <section className="panel">
@@ -98,34 +92,11 @@ export function LabPage({ session, onChanged }: Props) {
             </div>
           ))}
         </section>
-
-        <section className="panel">
-          <h2>Concurrency & least privilege</h2>
-          <p className="lead">Simulate another analyst editing the incident (If-Match revision bump), or prove the Gate token cannot isolate.</p>
-          <div className="row">
-            <label className="field">
-              Incident
-              <select value={incident} onChange={(e) => setIncident(e.target.value)}>
-                {(session?.scenarios ?? []).map((s) => (
-                  <option key={s.incidentId} value={s.incidentId}>
-                    {s.incidentId}: {s.label}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <button className="btn" onClick={() => run(() => api('POST', `/lab/incidents/${incident}/concurrent-update`))} data-testid="concurrent-update">
-              Concurrent incident update
-            </button>
-            <button className="btn" onClick={() => run(() => api('POST', '/lab/least-privilege-check', { machineId: 'device-d8f92a10' }))}>
-              Try isolation with Gate token
-            </button>
-          </div>
-        </section>
       </div>
 
       <section className="panel">
-        <h2>Fault injection</h2>
-        <p className="lead">Faults are applied inside the simulators, so the Gate experiences real HTTP errors, latency and corrupted responses.</p>
+        <h2>Failure drills</h2>
+        <p className="lead">Each drill makes the next calls fail inside a simulator, so the Gate meets real HTTP errors, delays and corrupted answers. Then go back to Review and try again.</p>
         <div className="row small" style={{ marginBottom: 10 }}>
           <span>
             Mock Security: <code>{faults ? `${faults.security.mode} (${faults.security.target}, remaining ${faults.security.remaining})` : '…'}</code>
@@ -162,30 +133,78 @@ export function LabPage({ session, onChanged }: Props) {
         </div>
       </section>
 
-      <section className="panel">
-        <h2>Simulator audit logs</h2>
-        <p className="lead">Append-only logs kept by each simulator. They are separate from the Gate's own hash-chained audit log.</p>
-        <div className="row">
-          <select value={auditSystem} onChange={(e) => setAuditSystem(e.target.value as 'security' | 'itsm')} aria-label="Simulator">
-            <option value="itsm">Mock ITSM / CMDB</option>
-            <option value="security">Mock Microsoft Security</option>
-          </select>
-          <button className="btn btn-sm" onClick={async () => setAudit((await api<{ value: unknown[] }>('GET', `/lab/simulator-audit?system=${auditSystem}`)).value)}>
-            Load
-          </button>
-          <button className="btn btn-sm" onClick={async () => setOutput(await api('GET', '/lab/notifications'))}>
-            Show approver notifications
-          </button>
-        </div>
-        {audit && <Json value={audit.slice(0, 40)} />}
-      </section>
-
       {output !== null && (
-        <section className="panel">
-          <h2>Last result</h2>
-          <Json value={output} />
+        <section className="panel" data-testid="lab-last-result">
+          <h2>Last action</h2>
+          <p style={{ marginTop: 0 }}>{error ? 'The last action failed; the message is shown above.' : 'Done. The simulator accepted the change.'}</p>
+          <details>
+            <summary className="small">Show the raw response</summary>
+            <Json value={output} />
+          </details>
         </section>
       )}
+
+      <details className="panel advanced" data-testid="lab-advanced">
+        <summary>
+          <strong>Advanced simulator controls</strong> <span className="small muted">clock, concurrency, least privilege, simulator logs</span>
+        </summary>
+
+        <section className="advanced-block">
+          <h3>Scenario clock</h3>
+          <div className="row">
+            <button className="btn" onClick={() => run(() => api('POST', '/lab/clock', { advanceMinutes: 6 }))}>
+              Advance clock +6 min
+            </button>
+            <button className="btn" onClick={() => run(() => api('POST', '/lab/clock', { advanceMinutes: 16 }))} data-testid="advance-16">
+              Advance clock +16 min
+            </button>
+          </div>
+          <p className="small muted">
+            Clock mode: {session?.clock.mode} · manual offset {session?.clock.manualOffsetMinutes ?? 0} min. +6 min expires an unstaged evaluation; +16 min expires a staged approval packet.
+          </p>
+        </section>
+
+        <section className="advanced-block">
+          <h3>Concurrency & least privilege</h3>
+          <p className="small muted">Simulate another analyst editing the incident (If-Match revision bump), or prove the Gate token cannot isolate.</p>
+          <div className="row">
+            <label className="field">
+              Incident
+              <select value={incident} onChange={(e) => setIncident(e.target.value)}>
+                {(session?.scenarios ?? []).map((s) => (
+                  <option key={s.incidentId} value={s.incidentId}>
+                    {s.incidentId}: {s.label}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <button className="btn" onClick={() => run(() => api('POST', `/lab/incidents/${incident}/concurrent-update`))} data-testid="concurrent-update">
+              Concurrent incident update
+            </button>
+            <button className="btn" onClick={() => run(() => api('POST', '/lab/least-privilege-check', { machineId: 'device-d8f92a10' }))}>
+              Try isolation with Gate token
+            </button>
+          </div>
+        </section>
+
+        <section className="advanced-block">
+          <h3>Simulator audit logs</h3>
+          <p className="small muted">Append-only logs kept by each simulator. They are separate from the Gate&apos;s own hash-chained audit log.</p>
+          <div className="row">
+            <select value={auditSystem} onChange={(e) => setAuditSystem(e.target.value as 'security' | 'itsm')} aria-label="Simulator" className="select-input">
+              <option value="itsm">Mock ITSM / CMDB</option>
+              <option value="security">Mock Microsoft Security</option>
+            </select>
+            <button className="btn btn-sm" onClick={async () => setAudit((await api<{ value: unknown[] }>('GET', `/lab/simulator-audit?system=${auditSystem}`)).value)}>
+              Load
+            </button>
+            <button className="btn btn-sm" onClick={async () => setOutput(await api('GET', '/lab/notifications'))}>
+              Show approver notifications
+            </button>
+          </div>
+          {audit && <Json value={audit.slice(0, 40)} />}
+        </section>
+      </details>
     </div>
   );
 }

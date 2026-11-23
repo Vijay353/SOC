@@ -1,5 +1,5 @@
 import type { RequestView } from '../types';
-import { fmtTime, personLabel, STATE_LABEL, StateBadge } from '../ui';
+import { fmtDateTime, fmtTime, personLabel, personName, STATE_LABEL, StateBadge } from '../ui';
 import { DECISION_WORDS } from '../activity';
 import { activitySummary, OPEN_HISTORY_STATES } from '../activity';
 import { ageBar } from '../ageBar';
@@ -38,15 +38,18 @@ export function RequestWorkspace({ view, busy, stageResult, onStage, onReevaluat
   const reevaluable = ['INSUFFICIENT_EVIDENCE', 'MANUAL_REVIEW', 'REEVALUATION_REQUIRED'].includes(req.state);
   const lastError = req.lastError;
 
-  const verdictText =
+  const shownReasons = ev.reasons.filter((r) => !(ev.decision === 'REQUIRE_DUAL_APPROVAL' && r.code === 'FULL_ISOLATION_HIGH_IMPACT'));
+  const topReasons = shownReasons.slice(0, 3);
+  const moreReasons = shownReasons.length - topReasons.length;
+  const verdictLead =
     ev.decision === 'REQUIRE_DUAL_APPROVAL'
-      ? `Defender evidence supports containment, but current operational evidence shows ${ev.reasons
-          .filter((r) => r.code !== 'FULL_ISOLATION_HIGH_IMPACT')
-          .map((r) => (/^[A-Z][a-z]/.test(r.text) ? r.text.charAt(0).toLowerCase() + r.text.slice(1) : r.text))
-          .join('; ')}.`
+      ? 'Security evidence supports containment, but business evidence shows it could disrupt operations:'
       : ev.decision === 'STANDARD_RESPONSE_ELIGIBLE'
         ? 'Current, complete evidence shows no business-impact signal. Executing the isolation remains a separate step in Defender. This Gate never isolates a device.'
-        : ev.reasons.map((r) => r.text).join('. ') + '.';
+        : ev.decision === 'MANUAL_REVIEW'
+          ? 'The Gate cannot decide safely on its own:'
+          : 'The Gate will not guess. It needs better evidence first:';
+  const next = nextAction(view);
 
   return (
     <div data-testid="workspace">
@@ -73,13 +76,25 @@ export function RequestWorkspace({ view, busy, stageResult, onStage, onReevaluat
         </div>
       </div>
 
+      <p className="print-only print-banner">
+        Decision record · synthetic demo data, conceptual prototype · evidence snapshot {fmtDateTime(ev.createdAt)} · a snapshot, not live state
+      </p>
+
       <div className={`verdict ${v.tone}`} data-testid="verdict">
         <span className="verdict-icon" aria-hidden="true">
           {v.icon}
         </span>
         <div className="verdict-body">
           <p className="verdict-title">{v.title}</p>
-          <p className="verdict-text">{verdictText}</p>
+          <p className="verdict-text">{verdictLead}</p>
+          {ev.decision !== 'STANDARD_RESPONSE_ELIGIBLE' && topReasons.length > 0 && (
+            <ul className="verdict-reasons">
+              {topReasons.map((r) => (
+                <li key={r.code}>{sentence(r.text)}</li>
+              ))}
+              {moreReasons > 0 && <li className="muted">and {moreReasons} more, shown under How the Gate decided</li>}
+            </ul>
+          )}
         </div>
         <div className="verdict-code">
           <small>Decision</small>
@@ -87,8 +102,6 @@ export function RequestWorkspace({ view, busy, stageResult, onStage, onReevaluat
           <code className="code-secondary" data-testid="decision-code">{ev.decision}</code>
         </div>
       </div>
-
-      <EvidenceChecks checks={s.evidenceChecks} evidenceHashes={ev.evidenceHashes} />
 
       {(s.duplicateCheck?.matches.length ?? 0) > 0 && (
         <div className="banner banner-warn" role="status" data-testid="possible-duplicate">
@@ -104,6 +117,149 @@ export function RequestWorkspace({ view, busy, stageResult, onStage, onReevaluat
         </div>
       )}
 
+      {/* CH-4/CH-5/CH-7: the one next action, what it will do, and where the request is in its real lifecycle. */}
+      <section className="nextstep" aria-labelledby="next-h" data-testid="next-step">
+        <div className="nextstep-main">
+          <h2 id="next-h">What happens next</h2>
+          <ol className="stepper" aria-label="Request progress" data-testid="stepper">
+            {lifecycleSteps(req.state).map((st) => (
+              <li key={st.label} data-status={st.status} data-mark={STEP_MARK[st.status]} aria-current={st.status === 'current' ? 'step' : undefined}>
+                <span>
+                  {st.label}
+                  <span className="sr-only"> ({STEP_WORDS[st.status]})</span>
+                </span>
+              </li>
+            ))}
+          </ol>
+          <p className="status-line" data-testid="state-transition">
+            <span className="muted">Status now:</span> <StateBadge state={req.state} />{' '}
+            <code className="code-inline" data-testid="current-state">
+              {req.state}
+            </code>
+          </p>
+        </div>
+        <div className="cta-col">
+          {req.state === 'RESPONSE_READY' && ev.decision === 'REQUIRE_DUAL_APPROVAL' && (
+            <button className="btn btn-primary btn-lg" onClick={onStage} disabled={busy !== null} data-testid="stage-button">
+              {busy === 'stage' ? 'Sending and verifying…' : 'Send for dual approval'}
+            </button>
+          )}
+          {reevaluable && (
+            <button className="btn btn-primary btn-lg" onClick={onReevaluate} disabled={busy !== null} data-testid="reevaluate-button">
+              {busy === 'evaluate' ? 'Re-reading evidence…' : 'Re-evaluate with current evidence'}
+            </button>
+          )}
+          {req.state === 'WAITING_FOR_DUAL_APPROVAL' && (
+            <button className="btn btn-primary btn-lg" disabled>
+              Waiting for approvers
+            </button>
+          )}
+          {terminal && (
+            <button className="btn btn-primary btn-lg" onClick={onNewReview} disabled={busy !== null}>
+              Start a new review
+            </button>
+          )}
+          {req.state === 'VERIFICATION_FAILED' && (
+            <button className="btn btn-primary btn-lg" disabled>
+              Escalated: manual reconciliation required
+            </button>
+          )}
+          <p className="cta-note" data-testid="cta-note">
+            {next}
+          </p>
+          <button className="btn btn-sm btn-quiet-light no-print" onClick={() => window.print()} data-testid="print-record">
+            Print decision record
+          </button>
+        </div>
+      </section>
+
+      <div className="results">
+        {packet && req.state !== 'VERIFICATION_FAILED' && (
+          <section className="result result-ok" aria-labelledby="res" data-testid="result">
+            <h2 id="res">
+              <span aria-hidden="true">✓</span> Approval packet {packet.approvalId} staged and verified
+            </h2>
+            <dl className="result-grid">
+              <div>
+                <dt>Incident</dt>
+                <dd>{packet.incidentId}</dd>
+              </div>
+              <div>
+                <dt>Approvers</dt>
+                <dd>{packet.approverIds.map((a) => approverName(view, a)).join(' + ')}</dd>
+              </div>
+              <div>
+                <dt>Packet status</dt>
+                <dd data-testid="packet-status">
+                  <StateBadge state={packet.status} />
+                </dd>
+              </div>
+              <div>
+                <dt>Read-back</dt>
+                <dd className="val-ok">Verified</dd>
+              </div>
+              <div>
+                <dt>Device mutation</dt>
+                <dd className="val-ok" data-testid="device-mutation">
+                  None
+                </dd>
+              </div>
+              <div>
+                <dt>Expires</dt>
+                <dd>{fmtTime(packet.expiresAt)}</dd>
+              </div>
+              {stageResult && 'duplicate' in stageResult && (
+                <div>
+                  <dt>Already existed</dt>
+                  <dd>{stageResult.duplicate ? 'Yes, the existing packet was returned' : 'No, new packet'}</dd>
+                </div>
+              )}
+              <div>
+                <dt>Decisions</dt>
+                <dd>{packet.decisions.length ? packet.decisions.map((d) => `${approverName(view, d.approverId)}: ${d.decision === 'APPROVE' ? 'approved' : 'rejected'}`).join(', ') : 'none yet'}</dd>
+              </div>
+            </dl>
+            <p className="result-foot">
+              {req.state === 'APPROVED_FOR_MANUAL_EXECUTION'
+                ? 'Both owners approved. Execution remains a manual Defender action outside this prototype.'
+                : req.state === 'REJECTED'
+                  ? 'An approver rejected the request. Isolation must not proceed on this evidence.'
+                  : req.state === 'EXPIRED'
+                    ? 'The packet expired without two approvals. Expiry never approves.'
+                    : 'One risky response became owned, reviewable work without changing the endpoint.'}
+            </p>
+          </section>
+        )}
+        {req.state === 'VERIFICATION_FAILED' && (
+          <section className="result result-fail" aria-labelledby="resf" data-testid="result-failed">
+            <h2 id="resf">Read-back did not match, so it is not treated as staged</h2>
+            <p style={{ margin: 0 }}>The tool reported success, but the stored packet differs from what was sent. The request is escalated for manual reconciliation; nobody should act on packet {req.approvalId}.</p>
+          </section>
+        )}
+        {!packet && req.state !== 'VERIFICATION_FAILED' && (
+          <section className="result result-none" aria-labelledby="resn">
+            <h2 id="resn">No approval packet</h2>
+            <p className="muted" style={{ margin: 0 }}>
+              {ev.decision === 'REQUIRE_DUAL_APPROVAL' ? 'Nothing has been written yet. Staging creates exactly one packet.' : 'This decision does not create approval work. No upstream system was changed.'}
+            </p>
+          </section>
+        )}
+        <section className="boundary" aria-labelledby="db">
+          <h2 id="db">Who decides what</h2>
+          <dl>
+            <dt style={{ color: 'var(--accent)' }}>AGENT</dt>
+            <dd>Extracts cited constraints; may abstain</dd>
+            <dt style={{ color: 'var(--warn)' }}>POLICY</dt>
+            <dd>Chooses review path and approvers</dd>
+            <dt style={{ color: 'var(--ok)' }}>TOOL</dt>
+            <dd>Stages approval only; cannot isolate</dd>
+          </dl>
+        </section>
+      </div>
+
+      <EvidenceChecks checks={s.evidenceChecks} evidenceHashes={ev.evidenceHashes} />
+
+      <h2 className="section-title">How the Gate decided</h2>
       <div className="cards">
         <article className="card" aria-labelledby="c1">
           <h2 className="card-step" id="c1">
@@ -291,151 +447,6 @@ export function RequestWorkspace({ view, busy, stageResult, onStage, onReevaluat
         </article>
       </div>
 
-      <section className="workflow" aria-labelledby="wf">
-        <div>
-          <h2 id="wf">Bounded response workflow</h2>
-          <p>The unsafe action is held until the accountable owners review the same versioned evidence.</p>
-          <ol className="stepper" aria-label="Request progress" data-testid="stepper">
-            {lifecycleSteps(req.state).map((st) => (
-              <li key={st.label} data-status={st.status} data-mark={STEP_MARK[st.status]} aria-current={st.status === 'current' ? 'step' : undefined}>
-                <span>
-                  {st.label}
-                  <span className="sr-only"> ({STEP_WORDS[st.status]})</span>
-                </span>
-              </li>
-            ))}
-          </ol>
-          <div className="states" data-testid="state-transition">
-            <div className="state-box">
-              <small>Before</small>
-              <strong>{STATE_LABEL.RESPONSE_READY}</strong>
-              <code className="code-secondary">RESPONSE_READY</code>
-            </div>
-            <span className="arrow" aria-hidden="true">
-              →
-            </span>
-            <div className={`state-box ${req.state === 'RESPONSE_READY' ? '' : ['APPROVED_FOR_MANUAL_EXECUTION', 'STANDARD_RESPONSE_ELIGIBLE'].includes(req.state) ? 'done' : 'after'}`}>
-              <small>{req.state === 'WAITING_FOR_DUAL_APPROVAL' ? 'After read-back' : req.state === 'RESPONSE_READY' ? 'After staging' : 'Now'}</small>
-              <strong>{req.state === 'RESPONSE_READY' ? `${STATE_LABEL.WAITING_FOR_DUAL_APPROVAL} (not yet staged)` : STATE_LABEL[req.state]}</strong>
-              <code className="code-secondary" data-testid="current-state">
-                {req.state === 'RESPONSE_READY' ? 'WAITING_FOR_DUAL_APPROVAL (pending)' : req.state}
-              </code>
-            </div>
-          </div>
-        </div>
-        <div className="cta-col">
-          {req.state === 'RESPONSE_READY' && ev.decision === 'REQUIRE_DUAL_APPROVAL' && (
-            <button className="btn btn-primary" onClick={onStage} disabled={busy !== null} data-testid="stage-button">
-              {busy === 'stage' ? 'Staging and verifying…' : 'Stage dual-approval packet'}
-            </button>
-          )}
-          {reevaluable && (
-            <button className="btn btn-primary" onClick={onReevaluate} disabled={busy !== null} data-testid="reevaluate-button">
-              {busy === 'evaluate' ? 'Re-reading evidence…' : 'Re-evaluate with current evidence'}
-            </button>
-          )}
-          {req.state === 'WAITING_FOR_DUAL_APPROVAL' && (
-            <button className="btn btn-primary" disabled>
-              Packet staged, waiting for approvers
-            </button>
-          )}
-          {terminal && (
-            <button className="btn btn-primary" onClick={onNewReview} disabled={busy !== null}>
-              Start a new review
-            </button>
-          )}
-          {req.state === 'VERIFICATION_FAILED' && (
-            <button className="btn btn-primary" disabled>
-              Escalated: manual reconciliation required
-            </button>
-          )}
-          <span className="cta-note">Writes only to the simulated approval store, then reads the packet back and re-checks the device.</span>
-        </div>
-      </section>
-
-      <div className="results">
-        {packet && req.state !== 'VERIFICATION_FAILED' && (
-          <section className="result result-ok" aria-labelledby="res" data-testid="result">
-            <h2 id="res">
-              <span aria-hidden="true">✓</span> Approval packet {packet.approvalId} staged and verified
-            </h2>
-            <dl className="result-grid">
-              <div>
-                <dt>Incident</dt>
-                <dd>{packet.incidentId}</dd>
-              </div>
-              <div>
-                <dt>Approvers</dt>
-                <dd>{packet.approverIds.join(' + ')}</dd>
-              </div>
-              <div>
-                <dt>Packet status</dt>
-                <dd data-testid="packet-status">
-                  <StateBadge state={packet.status} />
-                </dd>
-              </div>
-              <div>
-                <dt>Read-back</dt>
-                <dd className="val-ok">Verified</dd>
-              </div>
-              <div>
-                <dt>Device mutation</dt>
-                <dd className="val-ok" data-testid="device-mutation">
-                  None
-                </dd>
-              </div>
-              <div>
-                <dt>Expires</dt>
-                <dd>{fmtTime(packet.expiresAt)}</dd>
-              </div>
-              {stageResult && 'duplicate' in stageResult && (
-                <div>
-                  <dt>Already existed</dt>
-                  <dd>{stageResult.duplicate ? 'Yes, the existing packet was returned' : 'No, new packet'}</dd>
-                </div>
-              )}
-              <div>
-                <dt>Decisions</dt>
-                <dd>{packet.decisions.length ? packet.decisions.map((d) => `${d.approverId}: ${d.decision === 'APPROVE' ? 'approved' : 'rejected'}`).join(', ') : 'none yet'}</dd>
-              </div>
-            </dl>
-            <p className="result-foot">
-              {req.state === 'APPROVED_FOR_MANUAL_EXECUTION'
-                ? 'Both owners approved. Execution remains a manual Defender action outside this prototype.'
-                : req.state === 'REJECTED'
-                  ? 'An approver rejected the request. Isolation must not proceed on this evidence.'
-                  : req.state === 'EXPIRED'
-                    ? 'The packet expired without two approvals. Expiry never approves.'
-                    : 'One risky response became owned, reviewable work without changing the endpoint.'}
-            </p>
-          </section>
-        )}
-        {req.state === 'VERIFICATION_FAILED' && (
-          <section className="result result-fail" aria-labelledby="resf" data-testid="result-failed">
-            <h2 id="resf">Read-back did not match, so it is not treated as staged</h2>
-            <p style={{ margin: 0 }}>The tool reported success, but the stored packet differs from what was sent. The request is escalated for manual reconciliation; nobody should act on packet {req.approvalId}.</p>
-          </section>
-        )}
-        {!packet && req.state !== 'VERIFICATION_FAILED' && (
-          <section className="result" style={{ background: 'var(--surface)', borderColor: 'var(--border)' }}>
-            <h2>No approval packet</h2>
-            <p className="muted" style={{ margin: 0 }}>
-              {ev.decision === 'REQUIRE_DUAL_APPROVAL' ? 'Nothing has been written yet. Staging creates exactly one packet.' : 'This decision does not create approval work. No upstream system was changed.'}
-            </p>
-          </section>
-        )}
-        <section className="boundary" aria-labelledby="db">
-          <h2 id="db">Decision boundary</h2>
-          <dl>
-            <dt style={{ color: 'var(--accent)' }}>AGENT</dt>
-            <dd>Extracts cited constraints; may abstain</dd>
-            <dt style={{ color: 'var(--warn)' }}>POLICY</dt>
-            <dd>Chooses review path and approvers</dd>
-            <dt style={{ color: 'var(--ok)' }}>TOOL</dt>
-            <dd>Stages approval only; cannot isolate</dd>
-          </dl>
-        </section>
-      </div>
 
       <ActivityHistory view={view} />
 
@@ -444,6 +455,47 @@ export function RequestWorkspace({ view, busy, stageResult, onStage, onReevaluat
       <Inspector view={view} />
     </div>
   );
+}
+
+/** First letter upper case, no trailing full stop: reason texts read as list items. */
+function sentence(t: string) {
+  const x = t.trim().replace(/\.$/, '');
+  return x.charAt(0).toUpperCase() + x.slice(1);
+}
+
+function approverName(view: RequestView, userId: string) {
+  const a = view.evaluation?.summary.nextStep.approvers.find((p) => p.userId === userId);
+  return a ? personLabel(a.displayName) : userId;
+}
+
+/** CH-7: one truthful sentence about what the primary button will do, or what is happening, in this state. */
+export function nextAction(view: RequestView): string {
+  const { request: req, evaluation: ev, packet } = view;
+  const approvers = ev?.summary.nextStep.approvers.map((a) => personName(a.displayName)) ?? [];
+  switch (req.state) {
+    case 'RESPONSE_READY':
+      return `Creates one approval request for ${approvers.length ? approvers.join(' and ') : 'two approvers'} in the demo ITSM, then reads it back to verify it. No device is changed.`;
+    case 'WAITING_FOR_DUAL_APPROVAL': {
+      const done = packet?.decisions.filter((d) => d.decision === 'APPROVE').length ?? 0;
+      return `${done} of 2 approvals recorded. Approvers decide in the Approvals tab${packet ? ` before ${fmtTime(packet.expiresAt)}` : ''}. Expiry never approves.`;
+    }
+    case 'APPROVED_FOR_MANUAL_EXECUTION':
+      return 'Both owners approved. The analyst now runs the isolation in Defender; this tool never does. A new review re-checks the evidence from scratch.';
+    case 'STANDARD_RESPONSE_ELIGIBLE':
+      return 'No approval is needed. The analyst runs the isolation in Defender; the Gate does not. A new review re-checks the evidence from scratch.';
+    case 'REJECTED':
+      return 'An approver said no. Do not isolate on this evidence. A new review re-checks the evidence from scratch.';
+    case 'EXPIRED':
+      return 'The approval window closed without two approvals. A new review re-checks the evidence from scratch.';
+    case 'INSUFFICIENT_EVIDENCE':
+      return 'Fix the source record first (for example in Data Studio). Re-evaluating only reads evidence again; nothing is written to Defender or the ITSM.';
+    case 'MANUAL_REVIEW':
+      return 'Ask the document owner to resolve the conflict, then re-evaluate. Re-evaluating only reads evidence; nothing is written upstream.';
+    case 'REEVALUATION_REQUIRED':
+      return 'The evidence changed or is too old. Re-evaluating reads it again; nothing is written upstream until you send for approval.';
+    case 'VERIFICATION_FAILED':
+      return `Nobody should act on packet ${req.approvalId ?? ''} until a person reconciles it by hand.`;
+  }
 }
 
 function identityTitle(match: string) {

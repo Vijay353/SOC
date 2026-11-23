@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { api, ApiError, getDemoUser } from '../api';
 import type { ApprovalPacket, Session } from '../types';
 import { projectImpact } from '../impact';
+import { reasonText } from '../reasonText';
 import { ErrorBanner, fmtTime, personLabel, StateBadge } from '../ui';
 
 interface Props {
@@ -19,6 +20,11 @@ export function ApprovalsPage({ session, onChanged }: Props) {
   const [confirming, setConfirming] = useState(false);
   const [bulkResult, setBulkResult] = useState<BulkResult | null>(null);
   const me = session?.identities.find((i) => i.userId === getDemoUser());
+  // B10: people by name and role; the ID stays available in the title for support and audit cross-checks.
+  const who = (userId: string) => {
+    const i = session?.identities.find((x) => x.userId === userId);
+    return i ? personLabel(i.displayName) : userId;
+  };
 
   const load = useCallback(async () => {
     try {
@@ -80,9 +86,10 @@ export function ApprovalsPage({ session, onChanged }: Props) {
       <div className="panel">
         <h2>Approval inbox: {me ? personLabel(me.displayName) : getDemoUser()}</h2>
         <p className="lead">
-          Packets assigned to the current demo identity. Switch identity in the header (for example to Jordan Reyes, SOC incident commander, or Maya Okafor, SAP EWM service owner) to act as an approver. Approving
-          does not isolate anything; it authorizes the analyst to act in Defender.
+          Requests that need your approval before an analyst may isolate a device. <strong>Approving does not isolate anything</strong>: it authorizes the analyst to act in Defender. Two different people must approve (four-eyes
+          approval).
         </p>
+        <p className="small muted">Demo: switch who you are acting as in the header, for example to Jordan Reyes (SOC incident commander) or Maya Okafor (SAP EWM service owner).</p>
         <div className="row">
           <button className="btn btn-sm" onClick={load}>
             Refresh
@@ -144,6 +151,7 @@ export function ApprovalsPage({ session, onChanged }: Props) {
                 {eligible(p) && (
                   <input
                     type="checkbox"
+                    className="packet-check"
                     aria-label={`Select ${p.approvalId} for bulk approval`}
                     checked={selected.has(p.approvalId)}
                     onChange={(e) => {
@@ -155,30 +163,48 @@ export function ApprovalsPage({ session, onChanged }: Props) {
                     data-testid={`select-${p.approvalId}`}
                   />
                 )}
-                <h3 style={{ marginRight: 'auto' }}>
-                  {p.approvalId} · Full isolation of <code>{p.machineId}</code> ({p.ciId})
-                </h3>
+                <div style={{ marginRight: 'auto' }}>
+                  <h3 className="packet-title">
+                    {open && !mine ? 'Approve' : 'Request:'} full isolation of {p.impactFacts?.host ?? p.machineId}
+                    {open && !mine ? '?' : ''}
+                  </h3>
+                  <div className="packet-sub">
+                    {p.impactFacts?.businessService ? <strong>{p.impactFacts.businessService}</strong> : null}
+                    {p.impactFacts?.businessService ? ' · ' : ''}
+                    {p.incidentId} · requested by <span title={p.requestedBy}>{who(p.requestedBy)}</span>
+                  </div>
+                </div>
                 <StateBadge state={p.status} />
               </div>
-              <div className="small muted">
-                {p.incidentId} r{p.expectedIncidentVersion} · requested by {p.requestedBy} · expires {fmtTime(p.expiresAt)}
-                {open ? ` (${minsLeft >= 0 ? `${minsLeft} min left on scenario clock` : 'past expiry'})` : ''} · policy {p.policyVersion} · {p.evidenceHashes.length} evidence hashes
-              </div>
-              <div className="row">
-                {p.reasonCodes.map((r) => (
-                  <span key={r} className="badge">
-                    {r}
-                  </span>
-                ))}
+              {open && (
+                <p className={`packet-expiry ${minsLeft <= 5 ? 'val-warn' : ''}`}>
+                  {minsLeft >= 0 ? `${minsLeft} min left to decide` : 'Past expiry'} (expires {fmtTime(p.expiresAt)} on the scenario clock). If nobody decides in time, the request expires; expiry never approves.
+                </p>
+              )}
+              <div>
+                <h4 className="packet-why">Why two people must approve</h4>
+                <ul className="plain-list packet-reasons">
+                  {p.reasonCodes.map((r) => (
+                    <li key={r}>
+                      {reasonText(r)} <code className="code-inline">{r}</code>
+                    </li>
+                  ))}
+                </ul>
               </div>
               <div className="small">
-                Approvers: {p.approverIds.map((a) => `${a}${p.decisions.find((d) => d.approverId === a) ? ` (${p.decisions.find((d) => d.approverId === a)!.decision})` : ' (pending)'}`).join(' · ')}
+                Approvers:{' '}
+                {p.approverIds
+                  .map((a) => {
+                    const d = p.decisions.find((x) => x.approverId === a);
+                    return `${who(a)}: ${d ? (d.decision === 'APPROVE' ? 'approved' : 'rejected') : 'pending'}`;
+                  })
+                  .join(' · ')}
               </div>
               {open && p.impactFacts && <ImpactProjection packet={p} />}
               {open && !mine && (
                 <div className="row">
                   <label className="field" style={{ flex: '1 1 260px' }}>
-                    Comment (optional)
+                    Comment (optional, saved with your decision)
                     <input value={comments[p.approvalId] ?? ''} onChange={(e) => setComments({ ...comments, [p.approvalId]: e.target.value })} maxLength={500} />
                   </label>
                   <button className="btn btn-ok" onClick={() => decide(p, 'APPROVE')} disabled={busy !== null} data-testid={`approve-${p.approvalId}`}>
@@ -190,6 +216,9 @@ export function ApprovalsPage({ session, onChanged }: Props) {
                 </div>
               )}
               {mine && <div className="small muted">You recorded {mine.decision === 'APPROVE' ? 'an approval' : 'a rejection'} at {fmtTime(mine.decidedAt)}.</div>}
+              <div className="small muted packet-meta">
+                {p.approvalId} · device <code>{p.machineId}</code> · {p.ciId} · incident r{p.expectedIncidentVersion} · policy {p.policyVersion} · {p.evidenceHashes.length} evidence hashes
+              </div>
             </article>
           );
         })}

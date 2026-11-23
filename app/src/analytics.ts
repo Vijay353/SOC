@@ -11,6 +11,7 @@ type ClarityFn = ((...args: unknown[]) => void) & { q?: unknown[][] };
 type Win = Window & { clarity?: ClarityFn };
 
 let installed = false;
+let lastIdentified: string | null = null;
 
 export function storedConsent(): Consent | null {
   try {
@@ -56,11 +57,14 @@ export function track(event: AnalyticsEvent, win: Win = window): void {
 /**
  * Tags the Clarity session with the synthetic demo identity (e.g. which demo role is acting),
  * so sessions can be segmented in the Clarity dashboard. No-op until the tag is installed.
- * Only the opaque demo user ID is sent — never display names, record IDs, or free text.
+ * Only the opaque demo user ID is sent, never display names, record IDs, or free text.
+ * The same ID is sent at most once per page, so re-renders cannot repeat it.
  */
 export function identifyClarity(userId: string, win: Win = window): void {
   if (!installed || !win.clarity) return;
   if (typeof userId !== 'string' || userId.length === 0 || userId.length > 64) return;
+  if (lastIdentified === userId) return;
+  lastIdentified = userId;
   win.clarity('identify', userId);
 }
 
@@ -86,4 +90,5 @@ export function decline(): void {
 /** Test hook only. */
 export const _resetForTests = () => {
   installed = false;
+  lastIdentified = null;
 };

@@ -88,6 +88,8 @@ test('analytics: nothing on the passcode page or after a wrong PIN, nothing befo
   expect(calls).toEqual([
     JSON.stringify(['consentv2', { ad_Storage: 'denied', analytics_Storage: 'granted' }]),
     JSON.stringify(['event', 'project_entered']),
+    // e907954 tags the session with the synthetic demo user ID. Exactly once per consent; never a name, record ID or free text.
+    JSON.stringify(['identify', 'analyst-priya']),
     JSON.stringify(['event', 'record_opened']),
     JSON.stringify(['event', 'scenario_started']),
   ]);

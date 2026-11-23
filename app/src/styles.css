@@ -30,6 +30,28 @@
   --radius: 9px;
   --shadow: 0 1px 2px rgba(15, 23, 42, 0.05);
   --mono: ui-monospace, 'SFMono-Regular', Menlo, Consolas, monospace;
+  /* Product-clarity CH-1: type, space, size and elevation scales. rem-based so one root size scales the UI (Present mode).
+     Floor is 14px: nothing a person must read is smaller (senior-legibility rule, see docs/PRODUCT-UX-PLAN.md B1). */
+  --text-xs: 0.875rem;
+  --text-s: 0.9375rem;
+  --text-m: 1rem;
+  --text-l: 1.125rem;
+  --text-xl: 1.375rem;
+  --text-2xl: 1.75rem;
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 24px;
+  --space-6: 32px;
+  --radius-s: 6px;
+  --radius-m: 9px;
+  --radius-l: 14px;
+  --shadow-card: 0 1px 3px rgba(15, 23, 42, 0.08), 0 1px 2px rgba(15, 23, 42, 0.04);
+  --tap-min: 44px;
+  --tap-min-compact: 36px;
+  --maxw-page: 1480px;
+  --font-body: 'Segoe UI', Inter, system-ui, -apple-system, Roboto, Arial, sans-serif;
   color-scheme: light;
 }
 @media (prefers-color-scheme: dark) {
@@ -70,7 +92,7 @@ body {
   margin: 0;
   background: var(--bg);
   color: var(--text);
-  font: 14px/1.45 'Segoe UI', Inter, system-ui, -apple-system, Roboto, Arial, sans-serif;
+  font: var(--text-m)/1.5 'Segoe UI', Inter, system-ui, -apple-system, Roboto, Arial, sans-serif;
 }
 button,
 input,
@@ -106,7 +128,7 @@ textarea {
 code,
 .mono {
   font-family: var(--mono);
-  font-size: 12px;
+  font-size: var(--text-xs);
 }
 
 /* ---------------------------------------------------------------- top bar */
@@ -132,11 +154,11 @@ code,
 }
 .brand-name {
   font-weight: 700;
-  font-size: 15px;
+  font-size: var(--text-m);
 }
 .brand-sub {
   color: var(--bar-muted);
-  font-size: 11px;
+  font-size: var(--text-xs);
 }
 .tabs {
   display: flex;
@@ -173,7 +195,7 @@ code,
   gap: 6px;
   padding: 3px 10px;
   border-radius: 999px;
-  font-size: 11px;
+  font-size: var(--text-xs);
   font-weight: 700;
   letter-spacing: 0.03em;
   white-space: nowrap;
@@ -191,7 +213,7 @@ code,
 }
 .clock {
   color: var(--bar-muted);
-  font-size: 12px;
+  font-size: var(--text-xs);
 }
 .clock strong {
   color: var(--bar-text);
@@ -201,7 +223,7 @@ code,
   display: flex;
   align-items: center;
   gap: 6px;
-  font-size: 12px;
+  font-size: var(--text-xs);
   color: var(--bar-muted);
 }
 .identity select {
@@ -210,7 +232,8 @@ code,
   border: 1px solid #334155;
   border-radius: 6px;
   padding: 5px 8px;
-  max-width: 260px;
+  max-width: 280px;
+  min-height: var(--tap-min-compact);
 }
 
 /* ---------------------------------------------------------------- layout */
@@ -221,7 +244,7 @@ code,
 }
 .review-layout {
   display: grid;
-  grid-template-columns: 300px minmax(0, 1fr);
+  grid-template-columns: 330px minmax(0, 1fr);
   gap: 22px;
   align-items: start;
 }
@@ -260,7 +283,7 @@ code,
   overflow: hidden;
 }
 .queue h2 {
-  font-size: 13px;
+  font-size: var(--text-s);
   margin: 0;
   padding: 14px 16px 10px;
   text-transform: uppercase;
@@ -271,7 +294,7 @@ code,
   padding: 0 16px 12px;
   margin: 0;
   color: var(--text-3);
-  font-size: 12px;
+  font-size: var(--text-xs);
 }
 .queue ul {
   list-style: none;
@@ -302,18 +325,18 @@ code,
   font-weight: 700;
 }
 .queue-meta {
-  font-size: 12px;
+  font-size: var(--text-xs);
   color: var(--text-3);
 }
 .queue-title {
-  font-size: 12px;
+  font-size: var(--text-xs);
   color: var(--text-2);
 }
 
 /* ---------------------------------------------------------------- state badges */
 .badge {
   display: inline-block;
-  font-size: 10.5px;
+  font-size: var(--text-xs);
   font-weight: 700;
   letter-spacing: 0.04em;
   padding: 2px 7px;
@@ -355,7 +378,7 @@ code,
 }
 .empty h2 {
   margin: 0 0 8px;
-  font-size: 22px;
+  font-size: var(--text-xl);
   color: var(--text);
 }
 .empty ol {
@@ -372,7 +395,7 @@ code,
   margin-bottom: 14px;
 }
 .ws-header h1 {
-  font-size: 25px;
+  font-size: var(--text-2xl);
   line-height: 1.2;
   margin: 0 0 6px;
   font-weight: 750;
@@ -398,7 +421,7 @@ code,
   flex: none;
 }
 .safety-label {
-  font-size: 10px;
+  font-size: var(--text-xs);
   font-weight: 700;
   color: var(--text-3);
   letter-spacing: 0.04em;
@@ -431,7 +454,7 @@ code,
   flex: 1 1 360px;
 }
 .verdict-title {
-  font-size: 16px;
+  font-size: var(--text-l);
   font-weight: 750;
   margin: 0 0 2px;
 }
@@ -446,12 +469,12 @@ code,
 }
 .verdict-code small {
   display: block;
-  font-size: 10px;
+  font-size: var(--text-xs);
   font-weight: 700;
   letter-spacing: 0.04em;
 }
 .verdict-code strong {
-  font-size: 13px;
+  font-size: var(--text-s);
 }
 .v-warn {
   background: var(--warn-soft);
@@ -512,7 +535,7 @@ code,
   display: flex;
   align-items: center;
   gap: 8px;
-  font-size: 16px;
+  font-size: var(--text-l);
   font-weight: 750;
   margin: 0;
 }
@@ -524,19 +547,19 @@ code,
   color: #fff;
   display: grid;
   place-items: center;
-  font-size: 11px;
+  font-size: var(--text-xs);
   font-weight: 700;
   flex: none;
 }
 .eyebrow {
-  font-size: 10px;
+  font-size: var(--text-xs);
   font-weight: 700;
   letter-spacing: 0.08em;
   color: var(--text-3);
   text-transform: uppercase;
 }
 .card-title {
-  font-size: 19px;
+  font-size: var(--text-xl);
   font-weight: 750;
   margin: 0;
   padding-bottom: 12px;
@@ -547,7 +570,7 @@ code,
   color: var(--danger);
 }
 .source-label {
-  font-size: 11px;
+  font-size: var(--text-xs);
   font-weight: 750;
   letter-spacing: 0.04em;
   color: var(--accent);
@@ -593,12 +616,12 @@ code,
 .callout {
   border-radius: 6px;
   padding: 10px 12px;
-  font-size: 12.5px;
+  font-size: var(--text-s);
   margin-top: auto;
 }
 .callout b {
   display: block;
-  font-size: 11px;
+  font-size: var(--text-xs);
   letter-spacing: 0.04em;
   margin-bottom: 2px;
 }
@@ -646,63 +669,67 @@ code,
   font-style: italic;
 }
 
-.workflow {
+.nextstep {
   background: var(--surface);
-  border: 1px solid var(--border-strong);
-  border-radius: var(--radius);
-  padding: 18px 20px;
-  margin-bottom: 20px;
+  border: 2px solid var(--accent);
+  border-radius: var(--radius-m);
+  box-shadow: var(--shadow-card);
+  padding: var(--space-4) var(--space-5);
+  margin-bottom: var(--space-5);
   display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  gap: 16px 24px;
+  grid-template-columns: minmax(0, 1fr) minmax(280px, 380px);
+  gap: var(--space-4) var(--space-5);
   align-items: center;
 }
 @media (max-width: 900px) {
-  .workflow {
+  .nextstep {
     grid-template-columns: 1fr;
+    padding: var(--space-4);
   }
 }
-.workflow h2 {
-  font-size: 17px;
-  margin: 0 0 4px;
+.nextstep h2 {
+  font-size: var(--text-l);
+  margin: 0 0 var(--space-3);
 }
-.workflow p {
-  margin: 0 0 14px;
-  color: var(--text-3);
-}
-.states {
+.status-line {
+  margin: 0;
   display: flex;
-  align-items: center;
-  gap: 12px;
   flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
 }
-.state-box {
-  border-radius: 6px;
-  padding: 8px 14px;
-  background: var(--surface-2);
-  border: 1px solid var(--border);
-}
-.state-box small {
-  display: block;
-  font-size: 9.5px;
-  font-weight: 700;
+.code-inline {
+  font-family: var(--mono);
+  font-size: var(--text-xs);
   color: var(--text-3);
-  letter-spacing: 0.05em;
 }
-.state-box strong {
-  font-size: 13px;
+.verdict-reasons {
+  margin: var(--space-2) 0 0;
+  padding-left: 1.2em;
 }
-.state-box.after {
-  background: var(--warn-soft);
-  border-color: var(--warn-border);
+.verdict-reasons li {
+  margin: 2px 0;
 }
-.state-box.done {
-  background: var(--ok-soft);
-  border-color: var(--ok-border);
+.section-title {
+  font-size: var(--text-l);
+  margin: var(--space-5) 0 var(--space-3);
 }
-.arrow {
-  color: var(--text-3);
-  font-size: 20px;
+.result-none {
+  background: var(--surface);
+  border-color: var(--border);
+}
+.btn-lg {
+  min-height: 52px;
+  font-size: var(--text-l);
+}
+.btn-quiet-light {
+  background: transparent;
+  border-color: var(--border);
+  color: var(--text-2);
+  justify-self: start;
+}
+.print-only {
+  display: none;
 }
 .cta-col {
   display: grid;
@@ -718,10 +745,19 @@ code,
 .btn {
   border: 1px solid var(--border-strong);
   background: var(--surface);
-  border-radius: 6px;
-  padding: 8px 14px;
+  border-radius: var(--radius-s);
+  padding: 8px 16px;
   font-weight: 650;
   cursor: pointer;
+  /* B2: 44px targets for normal buttons (WCAG 2.5.5); compact buttons stay >= 36px (2.5.8 needs 24px). */
+  min-height: var(--tap-min);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  text-align: center;
+  text-decoration: none;
+  color: inherit;
 }
 .btn:hover:not(:disabled) {
   background: var(--surface-2);
@@ -735,14 +771,15 @@ code,
   border-color: var(--accent);
   color: #fff;
   padding: 14px 20px;
-  font-size: 14.5px;
+  font-size: var(--text-m);
 }
 .btn-primary:hover:not(:disabled) {
   background: var(--accent-hover);
 }
 .btn-sm {
-  padding: 5px 10px;
-  font-size: 12.5px;
+  padding: 5px 12px;
+  font-size: var(--text-s);
+  min-height: var(--tap-min-compact);
 }
 .btn-danger {
   color: var(--danger);
@@ -753,7 +790,7 @@ code,
   border-color: var(--ok-border);
 }
 .cta-note {
-  font-size: 11.5px;
+  font-size: var(--text-xs);
   color: var(--text-3);
 }
 
@@ -774,7 +811,7 @@ code,
   border: 1px solid;
 }
 .result h2 {
-  font-size: 16px;
+  font-size: var(--text-l);
   margin: 0 0 12px;
   display: flex;
   align-items: center;
@@ -806,7 +843,7 @@ code,
   }
 }
 .result-grid dt {
-  font-size: 12px;
+  font-size: var(--text-xs);
   color: var(--text-3);
 }
 .result-grid dd {
@@ -826,7 +863,7 @@ code,
   padding: 18px 20px;
 }
 .boundary h2 {
-  font-size: 16px;
+  font-size: var(--text-l);
   margin: 0 0 12px;
 }
 .boundary dl {
@@ -836,7 +873,7 @@ code,
   margin: 0;
 }
 .boundary dt {
-  font-size: 11px;
+  font-size: var(--text-xs);
   font-weight: 750;
   letter-spacing: 0.04em;
 }
@@ -873,7 +910,7 @@ details.inspector[open] > summary::before {
 details.inspector > summary span.hint {
   font-weight: 400;
   color: var(--text-3);
-  font-size: 12px;
+  font-size: var(--text-xs);
 }
 .inspector-body {
   border-top: 1px solid var(--border);
@@ -891,7 +928,7 @@ details.inspector > summary span.hint {
   padding: 5px 10px;
   border-radius: 6px;
   cursor: pointer;
-  font-size: 12.5px;
+  font-size: var(--text-s);
   font-weight: 600;
 }
 .subtab[aria-selected='true'] {
@@ -924,7 +961,7 @@ details.inspector > summary span.hint {
 .trace-time {
   margin-left: auto;
   color: var(--text-3);
-  font-size: 11.5px;
+  font-size: var(--text-xs);
 }
 pre.json {
   background: var(--surface-2);
@@ -933,21 +970,21 @@ pre.json {
   padding: 10px;
   overflow: auto;
   max-height: 340px;
-  font-size: 11.5px;
+  font-size: var(--text-xs);
   margin: 6px 0 0;
   white-space: pre-wrap;
   overflow-wrap: anywhere;
 }
 .call-line {
   font-family: var(--mono);
-  font-size: 11.5px;
+  font-size: var(--text-xs);
   color: var(--text-2);
   margin-top: 4px;
 }
 table.data {
   width: 100%;
   border-collapse: collapse;
-  font-size: 12.5px;
+  font-size: var(--text-s);
 }
 table.data th,
 table.data td {
@@ -957,7 +994,7 @@ table.data td {
   vertical-align: top;
 }
 table.data th {
-  font-size: 11px;
+  font-size: var(--text-xs);
   text-transform: uppercase;
   letter-spacing: 0.04em;
   color: var(--text-3);
@@ -981,7 +1018,7 @@ table.data th {
   margin-bottom: 18px;
 }
 .panel h2 {
-  font-size: 16px;
+  font-size: var(--text-l);
   margin: 0 0 6px;
 }
 .panel > p.lead {
@@ -1007,7 +1044,7 @@ table.data th {
 label.field {
   display: grid;
   gap: 4px;
-  font-size: 12.5px;
+  font-size: var(--text-s);
   color: var(--text-2);
   font-weight: 600;
 }
@@ -1017,14 +1054,15 @@ label.field textarea {
   border: 1px solid var(--border-strong);
   background: var(--surface);
   border-radius: 6px;
-  padding: 7px 9px;
+  padding: 7px 10px;
   font-weight: 400;
+  min-height: var(--tap-min);
 }
 .muted {
   color: var(--text-3);
 }
 .small {
-  font-size: 12px;
+  font-size: var(--text-xs);
 }
 .stack {
   display: grid;
@@ -1047,11 +1085,11 @@ label.field textarea {
 }
 .packet-head h3 {
   margin: 0;
-  font-size: 16px;
+  font-size: var(--text-l);
 }
 footer.foot {
   color: var(--text-3);
-  font-size: 11px;
+  font-size: var(--text-xs);
   padding: 10px 22px 24px;
   max-width: 1480px;
   margin: 0 auto;
@@ -1069,7 +1107,7 @@ footer.foot {
     overflow-x: auto;
   }
   .ws-header h1 {
-    font-size: 21px;
+    font-size: var(--text-xl);
   }
   .identity select {
     max-width: 200px;
@@ -1090,7 +1128,7 @@ a.btn {
   display: flex;
   justify-content: space-between;
   gap: 8px;
-  font-size: 12px;
+  font-size: var(--text-xs);
   color: var(--text-2);
 }
 .agebar-track {
@@ -1130,17 +1168,18 @@ a.btn {
   display: flex;
   align-items: center;
   gap: 6px;
-  font-size: 12.5px;
+  font-size: var(--text-s);
   color: var(--text-2);
 }
 .stepper li::before {
   content: attr(data-mark);
   display: inline-grid;
   place-items: center;
-  width: 18px;
-  height: 18px;
+  flex: none;
+  width: 24px;
+  height: 24px;
   border-radius: 50%;
-  font-size: 11px;
+  font-size: var(--text-xs);
   font-weight: 800;
   border: 1px solid var(--border-strong);
   background: var(--surface-2);
@@ -1172,7 +1211,7 @@ a.btn {
 .code-secondary {
   display: block;
   font-family: var(--mono);
-  font-size: 10.5px;
+  font-size: var(--text-xs);
   color: var(--text-3);
   margin-top: 2px;
 }
@@ -1219,4 +1258,324 @@ a.btn {
 .linklike:focus-visible {
   outline: 2px solid var(--focus);
   outline-offset: 2px;
+}
+
+/* B7: honour reduced-motion preferences everywhere. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+/* Long identifiers (hostnames, hashes) wrap instead of widening the page at phone widths. */
+h1,
+h2,
+h3,
+.card-title,
+.queue-host,
+dd,
+td {
+  overflow-wrap: anywhere;
+}
+
+/* CH-14 (print view): "Print decision record" prints the decision, reasons, checks, outcome and evidence
+   without navigation or controls. The header line marks it as synthetic and a snapshot. */
+@media print {
+  .topbar,
+  .queue,
+  .skip-link,
+  .foot,
+  .inspector,
+  .no-print,
+  .cta-col .btn,
+  .metrics-strip,
+  .analytics-notice {
+    display: none !important;
+  }
+  .print-only {
+    display: block !important;
+  }
+  .print-banner {
+    border: 1px solid #000;
+    padding: 6px 10px;
+    font-weight: 700;
+  }
+  html,
+  body {
+    background: #fff;
+    color: #000;
+  }
+  .review-layout {
+    display: block;
+  }
+  .page {
+    padding: 0;
+  }
+  .nextstep,
+  .card,
+  .result,
+  .verdict {
+    break-inside: avoid;
+    box-shadow: none;
+  }
+  details.evidence-checks > *:not(summary) {
+    display: block;
+  }
+}
+
+/* CH-6: queue grouped by what it needs from a person. */
+.queue-group-title {
+  margin: 0;
+  padding: var(--space-3) var(--space-4) var(--space-1);
+  font-size: var(--text-xs);
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--text-3);
+  border-top: 1px solid var(--border);
+}
+.queue-group-count {
+  display: inline-block;
+  min-width: 1.6em;
+  padding: 0 6px;
+  border-radius: 999px;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  text-align: center;
+  letter-spacing: 0;
+}
+.queue-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  flex-wrap: wrap;
+  gap: var(--space-1) var(--space-2);
+}
+
+/* CH-16: first-run story on the empty Review page. */
+.story {
+  text-align: left;
+  max-width: 800px;
+  border-style: solid;
+}
+@media (max-width: 700px) {
+  .empty {
+    padding: var(--space-4);
+  }
+}
+.story-lead {
+  font-size: var(--text-l);
+  color: var(--text);
+}
+.story .story-steps {
+  display: grid;
+  gap: var(--space-3);
+  padding-left: 1.4em;
+  margin: var(--space-4) 0 var(--space-5);
+}
+.story .btn-lg {
+  margin-bottom: var(--space-2);
+}
+
+/* CH-9 / CH-3 primitives */
+.count-badge {
+  display: inline-grid;
+  place-items: center;
+  min-width: 1.5em;
+  height: 1.5em;
+  padding: 0 6px;
+  margin-left: 6px;
+  border-radius: 999px;
+  background: #f59e0b;
+  color: #111827;
+  font-size: var(--text-xs);
+  font-weight: 800;
+  line-height: 1;
+}
+.metric-tile {
+  display: grid;
+  gap: 2px;
+  padding: var(--space-3) var(--space-4);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-m);
+}
+.metric-value {
+  font-size: var(--text-xl);
+  font-weight: 750;
+  line-height: 1.2;
+}
+.metric-label {
+  font-size: var(--text-xs);
+  color: var(--text-2);
+  font-weight: 600;
+}
+.metric-note {
+  font-size: var(--text-xs);
+  color: var(--text-3);
+}
+.metric-ok {
+  border-color: var(--ok-border);
+  background: var(--ok-soft);
+}
+.metric-ok .metric-value {
+  color: var(--ok);
+}
+.metric-danger {
+  border-color: var(--danger-border);
+  background: var(--danger-soft);
+}
+
+/* CH-8: approver card leads with the business context. */
+.packet-title {
+  margin: 0;
+  font-size: var(--text-l);
+}
+.packet-sub {
+  color: var(--text-2);
+  margin-top: 2px;
+}
+.packet-expiry {
+  margin: 0;
+  font-weight: 600;
+}
+.packet-why {
+  margin: 0 0 4px;
+  font-size: var(--text-s);
+}
+.packet-reasons li {
+  margin: 2px 0;
+}
+.packet-reasons li::before {
+  content: '\2022  ';
+  color: var(--text-3);
+}
+.packet-check {
+  width: 24px;
+  height: 24px;
+  margin-top: 4px;
+}
+
+/* CH-11: numbered import steps. */
+.import-step {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: var(--text-m);
+  margin: var(--space-4) 0 var(--space-2);
+}
+.search-input,
+.select-input {
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-s);
+  padding: 6px 10px;
+  min-height: var(--tap-min-compact);
+  background: var(--surface);
+}
+
+/* CH-10: the Lab is demo infrastructure; it is quieter than the product tabs and framed as outside the Gate. */
+.tab-secondary {
+  margin-left: var(--space-3);
+  border-left: 1px solid #334155;
+  border-top-left-radius: 0;
+  border-bottom-left-radius: 0;
+  font-weight: 500;
+  opacity: 0.85;
+}
+.lab-frame {
+  margin-bottom: var(--space-4);
+}
+details.advanced > summary {
+  cursor: pointer;
+  min-height: var(--tap-min);
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+}
+.advanced-block {
+  border-top: 1px solid var(--border);
+  padding-top: var(--space-3);
+  margin-top: var(--space-3);
+}
+.advanced-block h3 {
+  margin: 0 0 var(--space-2);
+  font-size: var(--text-m);
+}
+details.advanced > summary::before {
+  content: '\25B8';
+  display: inline-block;
+  width: 1em;
+  color: var(--text-2);
+}
+details.advanced[open] > summary::before {
+  content: '\25BE';
+}
+
+/* CH-17: live counts strip. */
+.metrics-strip {
+  margin-bottom: var(--space-4);
+}
+.metrics-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  margin-bottom: var(--space-2);
+}
+.metrics-head h2 {
+  margin: 0;
+  font-size: var(--text-s);
+  color: var(--text-2);
+  font-weight: 700;
+}
+.metrics-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+  gap: var(--space-2);
+}
+
+/* CH-18: Present mode scales the whole rem-based UI from one root size. */
+html.present {
+  font-size: 18px;
+}
+html.present .code-secondary,
+html.present .code-inline {
+  opacity: 0.7;
+}
+
+/* Pre-existing contrast defect found by axe (WCAG 1.4.3): white on the dark-mode accent #5b9bf0 is 2.84:1.
+   Dark text on it is ~6.6:1. Light mode is unchanged (white on #1f5fbf passes). */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) .btn-primary {
+    color: #0b1220;
+  }
+}
+
+/* WCAG 2.5.8: disclosure toggles were 21px tall. Page-level ones now meet the 36px compact target; dense ones inside
+   the technical trace stay compact but above 24px. Tabs meet 44px. */
+summary {
+  cursor: pointer;
+  padding-block: 8px;
+}
+.trace summary,
+.inspector-body summary {
+  padding-block: 4px;
+}
+.tab {
+  min-height: var(--tap-min);
+}
+
+/* On phones and narrow windows the first-run story comes before the queue, so the first step is on screen. */
+@media (max-width: 1100px) {
+  .review-layout.nothing-selected > section {
+    order: -1;
+  }
+}
+.review-layout + .metrics-strip {
+  margin-top: var(--space-5);
 }
