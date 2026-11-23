@@ -244,7 +244,7 @@ code,
 }
 .review-layout {
   display: grid;
-  grid-template-columns: 300px minmax(0, 1fr);
+  grid-template-columns: 330px minmax(0, 1fr);
   gap: 22px;
   align-items: start;
 }
@@ -669,63 +669,67 @@ code,
   font-style: italic;
 }
 
-.workflow {
+.nextstep {
   background: var(--surface);
-  border: 1px solid var(--border-strong);
-  border-radius: var(--radius);
-  padding: 18px 20px;
-  margin-bottom: 20px;
+  border: 2px solid var(--accent);
+  border-radius: var(--radius-m);
+  box-shadow: var(--shadow-card);
+  padding: var(--space-4) var(--space-5);
+  margin-bottom: var(--space-5);
   display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  gap: 16px 24px;
+  grid-template-columns: minmax(0, 1fr) minmax(280px, 380px);
+  gap: var(--space-4) var(--space-5);
   align-items: center;
 }
 @media (max-width: 900px) {
-  .workflow {
+  .nextstep {
     grid-template-columns: 1fr;
+    padding: var(--space-4);
   }
 }
-.workflow h2 {
+.nextstep h2 {
   font-size: var(--text-l);
-  margin: 0 0 4px;
+  margin: 0 0 var(--space-3);
 }
-.workflow p {
-  margin: 0 0 14px;
-  color: var(--text-3);
-}
-.states {
+.status-line {
+  margin: 0;
   display: flex;
-  align-items: center;
-  gap: 12px;
   flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
 }
-.state-box {
-  border-radius: 6px;
-  padding: 8px 14px;
-  background: var(--surface-2);
-  border: 1px solid var(--border);
-}
-.state-box small {
-  display: block;
+.code-inline {
+  font-family: var(--mono);
   font-size: var(--text-xs);
-  font-weight: 700;
   color: var(--text-3);
-  letter-spacing: 0.05em;
 }
-.state-box strong {
-  font-size: var(--text-s);
+.verdict-reasons {
+  margin: var(--space-2) 0 0;
+  padding-left: 1.2em;
 }
-.state-box.after {
-  background: var(--warn-soft);
-  border-color: var(--warn-border);
+.verdict-reasons li {
+  margin: 2px 0;
 }
-.state-box.done {
-  background: var(--ok-soft);
-  border-color: var(--ok-border);
+.section-title {
+  font-size: var(--text-l);
+  margin: var(--space-5) 0 var(--space-3);
 }
-.arrow {
-  color: var(--text-3);
-  font-size: var(--text-xl);
+.result-none {
+  background: var(--surface);
+  border-color: var(--border);
+}
+.btn-lg {
+  min-height: 52px;
+  font-size: var(--text-l);
+}
+.btn-quiet-light {
+  background: transparent;
+  border-color: var(--border);
+  color: var(--text-2);
+  justify-self: start;
+}
+.print-only {
+  display: none;
 }
 .cta-col {
   display: grid;
@@ -1171,8 +1175,9 @@ a.btn {
   content: attr(data-mark);
   display: inline-grid;
   place-items: center;
-  width: 18px;
-  height: 18px;
+  flex: none;
+  width: 24px;
+  height: 24px;
   border-radius: 50%;
   font-size: var(--text-xs);
   font-weight: 800;
@@ -1275,4 +1280,103 @@ h3,
 dd,
 td {
   overflow-wrap: anywhere;
+}
+
+/* CH-14 (print view): "Print decision record" prints the decision, reasons, checks, outcome and evidence
+   without navigation or controls. The header line marks it as synthetic and a snapshot. */
+@media print {
+  .topbar,
+  .queue,
+  .skip-link,
+  .foot,
+  .inspector,
+  .no-print,
+  .cta-col .btn,
+  .metrics-strip,
+  .analytics-notice {
+    display: none !important;
+  }
+  .print-only {
+    display: block !important;
+  }
+  .print-banner {
+    border: 1px solid #000;
+    padding: 6px 10px;
+    font-weight: 700;
+  }
+  html,
+  body {
+    background: #fff;
+    color: #000;
+  }
+  .review-layout {
+    display: block;
+  }
+  .page {
+    padding: 0;
+  }
+  .nextstep,
+  .card,
+  .result,
+  .verdict {
+    break-inside: avoid;
+    box-shadow: none;
+  }
+  details.evidence-checks > *:not(summary) {
+    display: block;
+  }
+}
+
+/* CH-6: queue grouped by what it needs from a person. */
+.queue-group-title {
+  margin: 0;
+  padding: var(--space-3) var(--space-4) var(--space-1);
+  font-size: var(--text-xs);
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--text-3);
+  border-top: 1px solid var(--border);
+}
+.queue-group-count {
+  display: inline-block;
+  min-width: 1.6em;
+  padding: 0 6px;
+  border-radius: 999px;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  text-align: center;
+  letter-spacing: 0;
+}
+.queue-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  flex-wrap: wrap;
+  gap: var(--space-1) var(--space-2);
+}
+
+/* CH-16: first-run story on the empty Review page. */
+.story {
+  text-align: left;
+  max-width: 800px;
+  border-style: solid;
+}
+@media (max-width: 700px) {
+  .empty {
+    padding: var(--space-4);
+  }
+}
+.story-lead {
+  font-size: var(--text-l);
+  color: var(--text);
+}
+.story .story-steps {
+  display: grid;
+  gap: var(--space-3);
+  padding-left: 1.4em;
+  margin: var(--space-4) 0 var(--space-5);
+}
+.story .btn-lg {
+  margin-bottom: var(--space-2);
 }
