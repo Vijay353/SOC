@@ -5,7 +5,8 @@ import { ApprovalsPage } from './components/ApprovalsPage';
 import { DataStudioPage } from './components/DataStudioPage';
 import { LabPage } from './components/LabPage';
 import { ReviewPage } from './components/ReviewPage';
-import type { Session } from './types';
+import { CountBadge } from './components/primitives';
+import type { ApprovalPacket, Session } from './types';
 import { fmtDateTime, personLabel, ShieldMark } from './ui';
 
 type Tab = 'review' | 'approvals' | 'data' | 'lab';
@@ -22,6 +23,19 @@ export function App() {
   const [sessionError, setSessionError] = useState<string | null>(null);
   const [user, setUser] = useState(getDemoUser());
   const [refreshKey, setRefreshKey] = useState(0);
+  // CH-9: requests waiting for the acting identity's decision. Same 10 s cadence as the session; no extra timer.
+  const [waiting, setWaiting] = useState(0);
+
+  const loadWaiting = useCallback(async () => {
+    try {
+      const me = getDemoUser();
+      const r = await api<{ value: ApprovalPacket[] }>('GET', '/approvals');
+      if (me !== getDemoUser()) return;
+      setWaiting(r.value.filter((p) => (p.status === 'WAITING_FOR_DUAL_APPROVAL' || p.status === 'PARTIALLY_APPROVED') && !p.decisions.some((d) => d.approverId === me)).length);
+    } catch {
+      setWaiting(0);
+    }
+  }, []);
 
   const loadSession = useCallback(async () => {
     try {
@@ -30,7 +44,8 @@ export function App() {
     } catch (e) {
       setSessionError((e as Error).message);
     }
-  }, []);
+    void loadWaiting();
+  }, [loadWaiting]);
 
   useEffect(() => {
     void loadSession();
@@ -42,6 +57,7 @@ export function App() {
     setDemoUser(u);
     setUser(u);
     setRefreshKey((k) => k + 1);
+    void loadWaiting();
   };
   // Data changes refresh the session (clock, identities) without remounting the page and losing context.
   const bump = () => {
@@ -65,6 +81,7 @@ export function App() {
           {TABS.map((t) => (
             <button key={t.id} role="tab" className="tab" aria-selected={tab === t.id} aria-controls="main" id={`tab-${t.id}`} onClick={() => setTab(t.id)}>
               {t.label}
+              {t.id === 'approvals' && <CountBadge count={waiting} label={waiting === 1 ? 'request waiting for you' : 'requests waiting for you'} testId="approvals-waiting" />}
             </button>
           ))}
         </nav>
