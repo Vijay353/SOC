@@ -17,8 +17,28 @@ const TABS: Array<{ id: Tab; label: string }> = [
   { id: 'lab', label: 'Simulator Lab' },
 ];
 
+const PRESENT_KEY = 'gate.present';
+const readPresent = () => {
+  try {
+    return sessionStorage.getItem(PRESENT_KEY) === '1';
+  } catch {
+    return false;
+  }
+};
+
 export function App() {
   const [tab, setTab] = useState<Tab>('review');
+  // CH-18: Present mode. Larger type, Simulator Lab hidden, live counts pinned. Lasts for this browser session only.
+  const [present, setPresent] = useState(readPresent);
+  useEffect(() => {
+    document.documentElement.classList.toggle('present', present);
+    try {
+      sessionStorage.setItem(PRESENT_KEY, present ? '1' : '0');
+    } catch {
+      /* storage unavailable: the mode still applies to this page */
+    }
+    if (present) setTab((t) => (t === 'lab' ? 'review' : t));
+  }, [present]);
   const [session, setSession] = useState<Session | null>(null);
   const [sessionError, setSessionError] = useState<string | null>(null);
   const [user, setUser] = useState(getDemoUser());
@@ -74,11 +94,11 @@ export function App() {
           <ShieldMark />
           <div>
             <div className="brand-name">Business Impact Gate</div>
-            <div className="brand-sub">Containment Assurance · conceptual extension for Defender XDR manual response</div>
+            <div className="brand-sub">Checks business impact before a device is cut off the network · conceptual demo</div>
           </div>
         </div>
         <nav className="tabs" role="tablist" aria-label="Sections">
-          {TABS.map((t) => (
+          {TABS.filter((t) => !(present && t.id === 'lab')).map((t) => (
             <button key={t.id} role="tab" className={`tab ${t.id === 'lab' ? 'tab-secondary' : ''}`} aria-selected={tab === t.id} aria-controls="main" id={`tab-${t.id}`} onClick={() => setTab(t.id)}>
               {t.label}
               {t.id === 'approvals' && <CountBadge count={waiting} label={waiting === 1 ? 'request waiting for you' : 'requests waiting for you'} testId="approvals-waiting" />}
@@ -108,6 +128,9 @@ export function App() {
             <span className="pill-dot" aria-hidden="true" />
             SYNTHETIC DEMO · {session?.mode ?? '…'}
           </span>
+          <button className="btn btn-sm btn-quiet" aria-pressed={present} onClick={() => setPresent((p) => !p)} data-testid="present-toggle" title="Larger text for presenting; hides the Simulator Lab">
+            {present ? 'Exit present mode' : 'Present'}
+          </button>
           {session?.access?.enabled && (
             <button className="btn btn-sm btn-quiet" onClick={() => void leaveDemo()} data-testid="leave-demo">
               Leave demo
@@ -138,7 +161,7 @@ export function App() {
             </button>
           </div>
         )}
-        {tab === 'review' && <ReviewPage key={`r-${refreshKey}`} session={session} onChanged={bump} onSwitchUser={changeUser} />}
+        {tab === 'review' && <ReviewPage key={`r-${refreshKey}`} session={session} onChanged={bump} onSwitchUser={changeUser} present={present} />}
         {tab === 'approvals' && <ApprovalsPage key={`a-${refreshKey}`} session={session} onChanged={bump} />}
         {tab === 'data' && <DataStudioPage key={`d-${refreshKey}`} onChanged={bump} demoResetAllowed={session?.demoReset?.allowed ?? true} />}
         {tab === 'lab' && <LabPage key={`l-${refreshKey}`} session={session} onChanged={bump} />}

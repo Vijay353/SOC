@@ -283,6 +283,30 @@ export function createSystem(overrides: Partial<AppConfig> = {}, env: NodeJS.Pro
     }),
   );
 
+  // Product-clarity CH-17: live counts for this demo workspace. Read-only and computed on every request from persisted
+  // rows; nothing is cached or hard-coded. "Containment executed by the Gate" counts isolation machine actions recorded
+  // by the security simulator for the Gate's own principal. The Gate token lacks machine.isolate, so this stays 0, and the
+  // count would show it if that ever changed.
+  api.get('/metrics', (_req, res) => {
+    const requests = store.listRequests();
+    const inState = (states: string[]) => requests.filter((r) => states.includes(r.state)).length;
+    const actions = securityRepo.machineActions();
+    const chain = store.verifyAuditChain();
+    res.json({
+      computedAt: clock.nowIso(),
+      scope: 'This demo workspace: gate.db and the security simulator, counted at request time.',
+      requestsChecked: requests.length,
+      approvalRequestsCreated: requests.filter((r) => r.approvalId !== null).length,
+      waitingForApproval: inState(['WAITING_FOR_DUAL_APPROVAL']),
+      approvedForManualExecution: inState(['APPROVED_FOR_MANUAL_EXECUTION']),
+      blockedOrEscalated: inState(['INSUFFICIENT_EVIDENCE', 'MANUAL_REVIEW', 'VERIFICATION_FAILED']),
+      containmentExecutedByGate: actions.filter((a) => a.requested_by === GATE).length,
+      containmentExecutedByAnyone: actions.length,
+      gatePrincipal: GATE,
+      auditChain: { intact: chain.intact, length: chain.length },
+    });
+  });
+
   // ---- Lab controls (demo-only simulator management; not part of the Gate trust boundary) ----
   // In production the reset is off unless ALLOW_DEMO_RESET (or SOC_ALLOW_DEMO_RESET) is on.
   api.post('/lab/reset', (_req, res) => {

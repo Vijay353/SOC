@@ -3,6 +3,7 @@ import { api, ApiError } from '../api';
 import type { QueueItem, RequestView, Session } from '../types';
 import { ErrorBanner, personName, StateBadge } from '../ui';
 import { track } from '../analytics';
+import { MetricsStrip } from './MetricsStrip';
 import { RequestWorkspace } from './RequestWorkspace';
 import { triage } from '../triage';
 
@@ -11,12 +12,14 @@ interface Props {
   onChanged: () => void;
   /** CH-13: demo-only identity switch, offered on a blocked action. */
   onSwitchUser?: (userId: string) => void;
+  /** CH-18: Present mode pins the metrics strip. */
+  present?: boolean;
 }
 
 /** Remembered across remounts (identity switches) so the reviewer keeps their place. */
 let rememberedTarget: string | null = null;
 
-export function ReviewPage({ session, onChanged, onSwitchUser }: Props) {
+export function ReviewPage({ session, onChanged, onSwitchUser, present = false }: Props) {
   const [queue, setQueue] = useState<QueueItem[] | null>(null);
   const [target, setTarget] = useState<string | null>(rememberedTarget);
   const [view, setView] = useState<RequestView | null>(null);
@@ -29,10 +32,12 @@ export function ReviewPage({ session, onChanged, onSwitchUser }: Props) {
   const selected = queue?.find((q) => keyOf(q) === target) ?? null;
 
   const [queueFailed, setQueueFailed] = useState(false);
+  const [metricsVersion, setMetricsVersion] = useState(0);
   const loadQueue = useCallback(async () => {
     try {
       const r = await api<{ value: QueueItem[] }>('GET', '/queue');
       setQueue(r.value);
+      setMetricsVersion((v) => v + 1);
       setQueueFailed(false);
       return r.value;
     } catch (e) {
@@ -156,113 +161,116 @@ export function ReviewPage({ session, onChanged, onSwitchUser }: Props) {
     [...(session?.scenarios ?? []), ...(session?.optionalScenarios ?? []).flatMap((o) => o.queueLabels)].find((s) => s.incidentId === q.incidentId && s.machineId === q.machineId)?.label;
 
   return (
-    <div className="review-layout">
-      <aside className="queue" aria-label="Manual response queue">
-        <h2>Containment requests</h2>
-        <p className="queue-hint">Devices an analyst may want to cut off from the network. Pick one to check its business impact.</p>
-        {!queue && !queueFailed && <p className="queue-hint">Loading…</p>}
-        {!queue && queueFailed && (
-          <p className="queue-hint" data-testid="queue-empty">
-            The queue could not be loaded.{' '}
-            <button className="btn btn-sm" onClick={() => void loadQueue()}>
-              Try again
-            </button>
-          </p>
-        )}
-        {queue && queue.length === 0 && (
-          <p className="queue-hint" data-testid="queue-empty">
-            No active incidents right now. When an incident with a device is active, it appears here.
-          </p>
-        )}
-        {queue &&
-          triage(queue).map((g) => (
-            <div key={g.group} className="queue-group" data-testid={`queue-group-${g.group}`}>
-              <h3 className="queue-group-title">
-                {g.label} <span className="queue-group-count">{g.items.length}</span>
-              </h3>
-              <ul>
-                {g.items.map((q) => (
-                  <li key={keyOf(q)} className="queue-item" data-active={keyOf(q) === target}>
-                    <button
-                      onClick={() => {
-                        setTarget(keyOf(q));
-                        track('record_opened');
-                      }}
-                      aria-current={keyOf(q) === target ? 'true' : undefined}
-                      data-testid={`queue-${q.incidentId}`}
-                    >
-                      <span className="queue-row">
-                        <span className="queue-host">{q.computerDnsName}</span>
-                        {q.latestRequest ? <StateBadge state={q.latestRequest.state} /> : <span className="badge">Not checked yet</span>}
-                      </span>
-                      <span className="queue-title">{q.displayName}</span>
-                      <span className="queue-meta">
-                        {q.incidentId} · r{q.revision} · {q.severity}
-                        {scenarioLabel(q) ? ` · ${scenarioLabel(q)}` : ''}
-                      </span>
-                    </button>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          ))}
-      </aside>
-
-      <section aria-live="polite" ref={workspaceRef}>
-        <ErrorBanner error={error} />
-        {error?.code === 'ROLE_NOT_PERMITTED' && <DemoSwitch session={session} onSwitchUser={onSwitchUser} />}
-        {!selected && target && !queue && <div className="panel">Loading review…</div>}
-        {!selected && !(target && !queue) && (
-          <div className="empty story" data-testid="first-run">
-            <h2>Check business impact before a high-risk containment</h2>
-            <p className="story-lead">Cutting a device off the network stops an attacker. On the wrong device it can also stop a warehouse, a payment system or a factory line.</p>
-            <ol className="story-steps">
-              <li>
-                <strong>The risk.</strong> One click on <em>Full isolation</em> in Defender can interrupt a business service nobody checked.
-              </li>
-              <li>
-                <strong>What the Gate does.</strong> It checks the device against business records (owner, live users, change freezes, runbooks) and decides whether two owners must approve first.
-              </li>
-              <li>
-                <strong>What it never does.</strong> It never isolates anything. Every name and number here is synthetic demo data.
-              </li>
-            </ol>
-            {example && (
-              <button className="btn btn-primary btn-lg" onClick={() => void showExample()} disabled={busy !== null || !!session?.setupError} data-testid="show-example">
-                {busy === 'prepare' ? 'Checking the evidence…' : `Show me the ${example.computerDnsName} example`}
+    <>
+      <MetricsStrip version={metricsVersion} pinned={present} />
+      <div className="review-layout">
+        <aside className="queue" aria-label="Manual response queue">
+          <h2>Containment requests</h2>
+          <p className="queue-hint">Devices an analyst may want to cut off from the network. Pick one to check its business impact.</p>
+          {!queue && !queueFailed && <p className="queue-hint">Loading…</p>}
+          {!queue && queueFailed && (
+            <p className="queue-hint" data-testid="queue-empty">
+              The queue could not be loaded.{' '}
+              <button className="btn btn-sm" onClick={() => void loadQueue()}>
+                Try again
               </button>
-            )}
-            <p className="small muted">Or pick any device from the list. Checking reads evidence only; nothing upstream changes.</p>
-          </div>
-        )}
-        {selected && !view && (
-          <div className="panel">
-            <div className="eyebrow">Proposed manual response</div>
-            <h1 style={{ margin: '4px 0 6px', fontSize: 'var(--text-2xl)' }}>Full isolate {selected.computerDnsName}</h1>
-            <p className="muted" style={{ marginTop: 0 }}>
-              {selected.incidentId} · {selected.displayName} · {selected.alertCount} alert(s) · device currently {selected.isolationState.replace('_', ' ').toLowerCase()}
             </p>
-            <p>The Gate will read Defender, CMDB, live-activity and runbook evidence, then apply policy {session?.policy.version ?? '(loading)'}. Checking changes nothing upstream.</p>
-            <button className="btn btn-primary btn-lg" onClick={() => void prepare()} disabled={busy !== null || !!session?.setupError}>
-              {busy === 'prepare' ? 'Evaluating evidence…' : 'Prepare isolation review'}
-            </button>
-          </div>
-        )}
-        {selected && view && (
-          <RequestWorkspace
-            view={view}
-            busy={busy}
-            stageResult={stageResult}
-            onStage={stage}
-            onReevaluate={reevaluate}
-            onNewReview={() => {
-              setView(null);
-              void prepare();
-            }}
-          />
-        )}
-      </section>
-    </div>
+          )}
+          {queue && queue.length === 0 && (
+            <p className="queue-hint" data-testid="queue-empty">
+              No active incidents right now. When an incident with a device is active, it appears here.
+            </p>
+          )}
+          {queue &&
+            triage(queue).map((g) => (
+              <div key={g.group} className="queue-group" data-testid={`queue-group-${g.group}`}>
+                <h3 className="queue-group-title">
+                  {g.label} <span className="queue-group-count">{g.items.length}</span>
+                </h3>
+                <ul>
+                  {g.items.map((q) => (
+                    <li key={keyOf(q)} className="queue-item" data-active={keyOf(q) === target}>
+                      <button
+                        onClick={() => {
+                          setTarget(keyOf(q));
+                          track('record_opened');
+                        }}
+                        aria-current={keyOf(q) === target ? 'true' : undefined}
+                        data-testid={`queue-${q.incidentId}`}
+                      >
+                        <span className="queue-row">
+                          <span className="queue-host">{q.computerDnsName}</span>
+                          {q.latestRequest ? <StateBadge state={q.latestRequest.state} /> : <span className="badge">Not checked yet</span>}
+                        </span>
+                        <span className="queue-title">{q.displayName}</span>
+                        <span className="queue-meta">
+                          {q.incidentId} · r{q.revision} · {q.severity}
+                          {scenarioLabel(q) ? ` · ${scenarioLabel(q)}` : ''}
+                        </span>
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ))}
+        </aside>
+
+        <section aria-live="polite" ref={workspaceRef}>
+          <ErrorBanner error={error} />
+          {error?.code === 'ROLE_NOT_PERMITTED' && <DemoSwitch session={session} onSwitchUser={onSwitchUser} />}
+          {!selected && target && !queue && <div className="panel">Loading review…</div>}
+          {!selected && !(target && !queue) && (
+            <div className="empty story" data-testid="first-run">
+              <h2>Check business impact before a high-risk containment</h2>
+              <p className="story-lead">Cutting a device off the network stops an attacker. On the wrong device it can also stop a warehouse, a payment system or a factory line.</p>
+              <ol className="story-steps">
+                <li>
+                  <strong>The risk.</strong> One click on <em>Full isolation</em> in Defender can interrupt a business service nobody checked.
+                </li>
+                <li>
+                  <strong>What the Gate does.</strong> It checks the device against business records (owner, live users, change freezes, runbooks) and decides whether two owners must approve first.
+                </li>
+                <li>
+                  <strong>What it never does.</strong> It never isolates anything. Every name and number here is synthetic demo data.
+                </li>
+              </ol>
+              {example && (
+                <button className="btn btn-primary btn-lg" onClick={() => void showExample()} disabled={busy !== null || !!session?.setupError} data-testid="show-example">
+                  {busy === 'prepare' ? 'Checking the evidence…' : `Show me the ${example.computerDnsName} example`}
+                </button>
+              )}
+              <p className="small muted">Or pick any device from the list. Checking reads evidence only; nothing upstream changes.</p>
+            </div>
+          )}
+          {selected && !view && (
+            <div className="panel">
+              <div className="eyebrow">Proposed manual response</div>
+              <h1 style={{ margin: '4px 0 6px', fontSize: 'var(--text-2xl)' }}>Full isolate {selected.computerDnsName}</h1>
+              <p className="muted" style={{ marginTop: 0 }}>
+                {selected.incidentId} · {selected.displayName} · {selected.alertCount} alert(s) · device currently {selected.isolationState.replace('_', ' ').toLowerCase()}
+              </p>
+              <p>The Gate will read Defender, CMDB, live-activity and runbook evidence, then apply policy {session?.policy.version ?? '(loading)'}. Checking changes nothing upstream.</p>
+              <button className="btn btn-primary btn-lg" onClick={() => void prepare()} disabled={busy !== null || !!session?.setupError}>
+                {busy === 'prepare' ? 'Evaluating evidence…' : 'Prepare isolation review'}
+              </button>
+            </div>
+          )}
+          {selected && view && (
+            <RequestWorkspace
+              view={view}
+              busy={busy}
+              stageResult={stageResult}
+              onStage={stage}
+              onReevaluate={reevaluate}
+              onNewReview={() => {
+                setView(null);
+                void prepare();
+              }}
+            />
+          )}
+        </section>
+      </div>
+    </>
   );
 }
 

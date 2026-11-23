@@ -1515,3 +1515,35 @@ details.advanced > summary::before {
 details.advanced[open] > summary::before {
   content: '\25BE';
 }
+
+/* CH-17: live counts strip. */
+.metrics-strip {
+  margin-bottom: var(--space-4);
+}
+.metrics-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  margin-bottom: var(--space-2);
+}
+.metrics-head h2 {
+  margin: 0;
+  font-size: var(--text-s);
+  color: var(--text-2);
+  font-weight: 700;
+}
+.metrics-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+  gap: var(--space-2);
+}
+
+/* CH-18: Present mode scales the whole rem-based UI from one root size. */
+html.present {
+  font-size: 18px;
+}
+html.present .code-secondary,
+html.present .code-inline {
+  opacity: 0.7;
+}
